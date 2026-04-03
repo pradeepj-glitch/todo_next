@@ -137,13 +137,13 @@ export default function ProfilePage() {
 
         .profile-page {
           min-height: 100vh;
-          padding: 2rem 1rem;
+          padding: 2rem 10%;
           background: ${bgColor};
           transition: background 0.3s;
         }
 
         .profile-container {
-          max-width: 600px;
+          max-width: 700px;
           margin: 0 auto;
         }
 
@@ -178,8 +178,8 @@ export default function ProfilePage() {
 
         .profile-card {
           background: ${cardBg};
-          border-radius: 24px;
-          padding: 2.5rem;
+          border-radius: 20px;
+          padding: 2rem;
           box-shadow: 0 10px 40px rgba(0, 0, 0, ${isDark ? '0.2' : '0.07'});
           border: 1px solid ${borderColor};
           transition: background 0.3s;
@@ -187,7 +187,7 @@ export default function ProfilePage() {
 
         .profile-title {
           font-family: 'Space Grotesk', sans-serif;
-          font-size: 1.8rem;
+          font-size: 1.5rem;
           font-weight: 700;
           color: ${headingColor};
           margin-bottom: 0.5rem;
@@ -201,22 +201,22 @@ export default function ProfilePage() {
         }
 
         .profile-avatar {
-          width: 80px;
-          height: 80px;
+          width: 64px;
+          height: 64px;
           border-radius: 50%;
           background: ${theme.gradient};
           display: flex;
           align-items: center;
           justify-content: center;
-          font-size: 2rem;
+          font-size: 1.6rem;
           font-weight: 700;
           color: white;
-          margin-bottom: 1.5rem;
+          margin-bottom: 1.25rem;
           box-shadow: ${theme.boxShadow};
         }
 
         .form-group {
-          margin-bottom: 1.5rem;
+          margin-bottom: 1.25rem;
         }
 
         .form-label {
@@ -230,10 +230,10 @@ export default function ProfilePage() {
 
         .form-input {
           width: 100%;
-          padding: 14px 18px;
+          padding: 12px 16px;
           border: 2px solid ${borderColor};
-          border-radius: 14px;
-          font-size: 1rem;
+          border-radius: 12px;
+          font-size: 0.95rem;
           outline: none;
           transition: all 0.2s;
           background: ${inputBg};
@@ -271,12 +271,12 @@ export default function ProfilePage() {
 
         .btn-primary {
           width: 100%;
-          padding: 16px;
+          padding: 14px;
           background: ${theme.gradient};
           color: white;
           border: none;
-          border-radius: 14px;
-          font-size: 1.05rem;
+          border-radius: 12px;
+          font-size: 1rem;
           font-weight: 600;
           cursor: pointer;
           transition: all 0.2s;
@@ -341,8 +341,8 @@ export default function ProfilePage() {
         }
 
         .theme-section {
-          margin-top: 2rem;
-          padding-top: 2rem;
+          margin-top: 1.5rem;
+          padding-top: 1.5rem;
           border-top: 1px solid ${borderColor};
         }
 
@@ -379,8 +379,8 @@ export default function ProfilePage() {
         }
 
         .logout-section {
-          margin-top: 2rem;
-          padding-top: 2rem;
+          margin-top: 1.5rem;
+          padding-top: 1.5rem;
           border-top: 1px solid ${borderColor};
           display: flex;
           justify-content: flex-end;

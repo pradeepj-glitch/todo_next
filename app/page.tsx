@@ -161,13 +161,13 @@ export default function Home() {
 
         .dashboard {
           min-height: 100vh;
-          padding: 2rem 1.5rem;
+          padding: 2rem 10%;
           background: ${bgColor};
           transition: background 0.3s;
         }
 
         .container {
-          max-width: 1100px;
+          max-width: 1200px;
           margin: 0 auto;
         }
 
@@ -182,7 +182,7 @@ export default function Home() {
 
         .header-left h1 {
           font-family: 'Space Grotesk', sans-serif;
-          font-size: 2.8rem;
+          font-size: 2rem;
           font-weight: 700;
           letter-spacing: -0.04em;
           color: ${headingColor};
@@ -196,21 +196,21 @@ export default function Home() {
 
         .stats {
           display: flex;
-          gap: 1.5rem;
+          gap: 1rem;
         }
 
         .stat-card {
           background: ${cardBg};
-          padding: 1rem 1.5rem;
-          border-radius: 16px;
+          padding: 0.75rem 1.25rem;
+          border-radius: 14px;
           box-shadow: 0 4px 20px rgba(0, 0, 0, ${isDark ? '0.2' : '0.06'});
           border: 1px solid ${borderColor};
-          min-width: 140px;
+          min-width: 110px;
           transition: background 0.3s;
         }
 
         .stat-number {
-          font-size: 2rem;
+          font-size: 1.5rem;
           font-weight: 700;
           color: ${textColor};
         }
@@ -223,8 +223,8 @@ export default function Home() {
 
         .main-content {
           display: grid;
-          grid-template-columns: 1fr 320px;
-          gap: 2rem;
+          grid-template-columns: 1fr 280px;
+          gap: 1.5rem;
         }
 
         @media (max-width: 1024px) {
@@ -235,7 +235,7 @@ export default function Home() {
 
         .todo-section {
           background: ${cardBg};
-          border-radius: 24px;
+          border-radius: 20px;
           box-shadow: 0 10px 40px rgba(0, 0, 0, ${isDark ? '0.2' : '0.07'});
           border: 1px solid ${borderColor};
           overflow: hidden;
@@ -244,7 +244,7 @@ export default function Home() {
         }
 
         .todo-header {
-          padding: 1.75rem 2rem;
+          padding: 1.25rem 1.5rem;
           border-bottom: 1px solid ${borderColor};
           display: flex;
           justify-content: space-between;
@@ -252,28 +252,28 @@ export default function Home() {
         }
 
         .todo-header h2 {
-          font-size: 1.35rem;
+          font-size: 1.15rem;
           font-weight: 600;
           color: ${textColor};
         }
 
         .input-area {
-          padding: 2rem;
+          padding: 1.5rem;
           border-bottom: 1px solid ${borderColor};
         }
 
         .input-row {
           display: flex;
-          gap: 12px;
+          gap: 10px;
         }
 
         .main-input {
           flex: 1;
           background: ${inputBg};
           border: 2px solid ${borderColor};
-          border-radius: 16px;
-          padding: 16px 20px;
-          font-size: 1.1rem;
+          border-radius: 14px;
+          padding: 12px 16px;
+          font-size: 0.95rem;
           outline: none;
           transition: all 0.2s;
           color: ${textColor};
@@ -285,13 +285,13 @@ export default function Home() {
         }
 
         .add-btn {
-          width: 58px;
-          height: 58px;
-          border-radius: 16px;
+          width: 48px;
+          height: 48px;
+          border-radius: 14px;
           background: ${theme.gradient};
           color: white;
           border: none;
-          font-size: 28px;
+          font-size: 22px;
           display: flex;
           align-items: center;
           justify-content: center;
@@ -304,20 +304,21 @@ export default function Home() {
 
         .priority-group {
           display: flex;
-          gap: 10px;
-          margin-top: 1.25rem;
+          gap: 8px;
+          margin-top: 1rem;
         }
 
         .priority-btn {
           flex: 1;
-          padding: 12px 16px;
-          border-radius: 14px;
+          padding: 10px 12px;
+          border-radius: 12px;
           border: 2px solid ${borderColor};
           background: ${cardBg};
           font-weight: 500;
+          font-size: 0.9rem;
           display: flex;
           align-items: center;
-          gap: 10px;
+          gap: 8px;
           cursor: pointer;
           transition: all 0.2s;
           color: ${textColor};
@@ -332,18 +333,19 @@ export default function Home() {
         .filters {
           display: flex;
           background: ${inputBg};
-          padding: 8px;
+          padding: 6px;
           border-radius: 9999px;
-          margin: 0 2rem 1.5rem;
+          margin: 0 1.5rem 1.25rem;
         }
 
         .filter-btn {
           flex: 1;
-          padding: 10px 24px;
+          padding: 8px 16px;
           border-radius: 9999px;
           border: none;
           background: transparent;
           font-weight: 500;
+          font-size: 0.9rem;
           color: ${mutedColor};
           cursor: pointer;
           transition: all 0.2s;
@@ -356,20 +358,20 @@ export default function Home() {
         }
 
         .todo-list {
-          padding: 0 2rem 2rem;
+          padding: 0 1.5rem 1.5rem;
           display: flex;
           flex-direction: column;
-          gap: 10px;
+          gap: 8px;
         }
 
         .todo-item {
           background: ${cardBg};
           border: 1px solid ${borderColor};
-          border-radius: 18px;
-          padding: 1.1rem 1.5rem;
+          border-radius: 16px;
+          padding: 1rem 1.25rem;
           display: flex;
           align-items: center;
-          gap: 16px;
+          gap: 12px;
           transition: all 0.25s ease;
         }
 
@@ -384,10 +386,10 @@ export default function Home() {
         }
 
         .checkbox {
-          width: 28px;
-          height: 28px;
-          border: 2.5px solid ${mutedColor};
-          border-radius: 10px;
+          width: 24px;
+          height: 24px;
+          border: 2px solid ${mutedColor};
+          border-radius: 8px;
           display: flex;
           align-items: center;
           justify-content: center;
@@ -402,7 +404,7 @@ export default function Home() {
 
         .todo-text {
           flex: 1;
-          font-size: 1.08rem;
+          font-size: 0.95rem;
           line-height: 1.5;
           color: ${textColor};
         }
@@ -417,8 +419,8 @@ export default function Home() {
           background: ${inputBg};
           border: 2px solid ${theme.primary};
           border-radius: 12px;
-          padding: 12px 16px;
-          font-size: 1.05rem;
+          padding: 10px 14px;
+          font-size: 0.95rem;
           outline: none;
           color: ${textColor};
         }
@@ -432,13 +434,13 @@ export default function Home() {
         .todo-item:hover .actions { opacity: 1; }
 
         .icon-btn {
-          width: 36px;
-          height: 36px;
-          border-radius: 10px;
+          width: 32px;
+          height: 32px;
+          border-radius: 8px;
           display: flex;
           align-items: center;
           justify-content: center;
-          font-size: 1.1rem;
+          font-size: 0.95rem;
           background: ${inputBg};
           color: ${mutedColor};
           border: 1px solid ${borderColor};
@@ -452,8 +454,8 @@ export default function Home() {
 
         .sidebar {
           background: ${cardBg};
-          border-radius: 24px;
-          padding: 2rem;
+          border-radius: 20px;
+          padding: 1.5rem;
           box-shadow: 0 10px 40px rgba(0, 0, 0, ${isDark ? '0.2' : '0.07'});
           border: 1px solid ${borderColor};
           height: fit-content;
@@ -461,8 +463,8 @@ export default function Home() {
         }
 
         .sidebar h3 {
-          font-size: 1.1rem;
-          margin-bottom: 1.5rem;
+          font-size: 1rem;
+          margin-bottom: 1.25rem;
           color: ${textColor};
         }
 
@@ -479,16 +481,16 @@ export default function Home() {
         }
 
         .legend-dot {
-          width: 14px;
-          height: 14px;
+          width: 12px;
+          height: 12px;
           border-radius: 50%;
         }
 
         .footer {
-          margin-top: 3rem;
+          margin-top: 2rem;
           text-align: center;
           color: ${mutedColor};
-          font-size: 0.95rem;
+          font-size: 0.85rem;
         }
 
         .profile-btn {
@@ -509,15 +511,15 @@ export default function Home() {
         }
 
         .profile-avatar-small {
-          width: 40px;
-          height: 40px;
+          width: 36px;
+          height: 36px;
           border-radius: 50%;
           display: flex;
           align-items: center;
           justify-content: center;
           color: white;
           font-weight: 700;
-          font-size: 1rem;
+          font-size: 0.9rem;
         }
 
         .modal-overlay {
@@ -589,24 +591,31 @@ export default function Home() {
           cursor: pointer;
         }
 
-        @media (max-width: 640px) {
-          .dashboard { padding: 1rem 0.75rem; }
-          .header { margin-bottom: 2rem; flex-direction: column; align-items: stretch; }
-          .header-left h1 { font-size: 1.8rem; }
-          .stats { justify-content: center; flex-wrap: wrap; }
-          .stat-card { min-width: 90px; padding: 0.75rem 1rem; }
-          .stat-number { font-size: 1.4rem; }
+        @media (max-width: 768px) {
+          .dashboard { padding: 1.5rem 5%; }
+          .header { margin-bottom: 1.5rem; flex-direction: column; align-items: stretch; gap: 1rem; }
+          .header-left h1 { font-size: 1.5rem; }
+          .stats { justify-content: center; flex-wrap: wrap; gap: 0.75rem; }
+          .stat-card { min-width: 80px; padding: 0.6rem 0.9rem; }
+          .stat-number { font-size: 1.2rem; }
           .stat-label { font-size: 0.7rem; }
-          .main-content { gap: 1.5rem; }
+          .main-content { gap: 1.25rem; }
           .todo-header, .input-area, .todo-list { padding-left: 1rem; padding-right: 1rem; }
           .input-row { flex-direction: column; }
-          .add-btn { width: 100%; height: 48px; border-radius: 14px; font-size: 1.2rem; }
+          .add-btn { width: 100%; height: 44px; border-radius: 12px; font-size: 1.1rem; }
           .priority-group { flex-wrap: wrap; }
-          .priority-btn { padding: 10px 12px; font-size: 0.85rem; }
-          .filters { margin: 0 1rem 1.5rem; }
-          .sidebar { padding: 1.5rem; }
-          .todo-item { padding: 1rem; }
-          .profile-avatar-small { width: 36px; height: 36px; font-size: 0.85rem; }
+          .priority-btn { padding: 8px 10px; font-size: 0.8rem; }
+          .filters { margin: 0 1rem 1rem; }
+          .sidebar { padding: 1.25rem; }
+          .todo-item { padding: 0.875rem; }
+          .profile-avatar-small { width: 32px; height: 32px; font-size: 0.8rem; }
+        }
+
+        @media (max-width: 480px) {
+          .dashboard { padding: 1rem 4%; }
+          .profile-card { padding: 1.25rem; border-radius: 16px; }
+          .todo-section { border-radius: 16px; }
+          .sidebar { padding: 1rem; }
         }
       `}</style>
 
