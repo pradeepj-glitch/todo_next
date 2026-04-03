@@ -210,13 +210,13 @@ export default function Home() {
         }
 
         .stat-number {
-          font-size: 1.5rem;
+          font-size: 0.8rem;
           font-weight: 700;
           color: ${textColor};
         }
 
         .stat-label {
-          font-size: 0.875rem;
+          font-size: 0.8rem;
           color: ${mutedColor};
           margin-top: 4px;
         }
@@ -598,7 +598,7 @@ export default function Home() {
           .stats { justify-content: center; flex-wrap: wrap; gap: 0.75rem; }
           .stat-card { min-width: 80px; padding: 0.6rem 0.9rem; }
           .stat-number { font-size: 1.2rem; }
-          .stat-label { font-size: 0.7rem; }
+          .stat-label { font-size: 0.2rem; }
           .main-content { gap: 1.25rem; }
           .todo-header, .input-area, .todo-list { padding-left: 1rem; padding-right: 1rem; }
           .input-row { flex-direction: column; }
@@ -623,10 +623,10 @@ export default function Home() {
         <div className="container">
           <div className="header">
             <div className="header-left">
-              <h1>
+              <h5>
                 {user ? `Welcome, ${user.name}!` : 'Welcome'}
-              </h1>
-              <p>Stay organized • Get things done</p>
+              </h5>
+              <p style={{fontSize:"10px", fontWeight:"bold"}}>Stay organized • Get things done</p>
             </div>
 
             <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
@@ -662,7 +662,7 @@ export default function Home() {
           <div className="main-content">
             <div className="todo-section">
               <div className="todo-header">
-                <h2>My Tasks</h2>
+                <h3 style={{fontFamily:"emoji"}}>My Tasks</h3>
                 <span style={{ color: mutedColor, fontSize: '0.95rem' }}>
                   {filter === 'all' ? 'All Tasks' : filter === 'active' ? 'Active' : 'Completed'}
                 </span>
