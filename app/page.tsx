@@ -474,7 +474,7 @@ export default function Home() {
             </div>
 
             <div className="stats">
-              <div className="stat-card">
+              <div className="stat-card"> 
                 <div className="stat-number">{activeCount}</div>
                 <div className="stat-label">Remaining</div>
               </div>
