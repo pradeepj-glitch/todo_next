@@ -1,3 +1,5 @@
+import { NextRequest } from "next/server";
+
 type Priority = "low" | "medium" | "high";
 
 interface Todo {
@@ -8,41 +10,61 @@ interface Todo {
   createdAt: string;
 }
 
-// In a real app this would be your DB — share via a module-level import
+// Temporary in-memory DB (will reset on deploy)
 let todos: Todo[] = [
-  { id: 1, text: "Learn Next.js App Router", completed: false, priority: "high",   createdAt: new Date().toISOString() },
-  { id: 2, text: "Build CRUD with MongoDB",  completed: false, priority: "medium", createdAt: new Date().toISOString() },
-  { id: 3, text: "Style the UI beautifully", completed: true,  priority: "low",    createdAt: new Date().toISOString() },
+  { id: 1, text: "Learn Next.js App Router", completed: false, priority: "high", createdAt: new Date().toISOString() },
+  { id: 2, text: "Build CRUD with MongoDB", completed: false, priority: "medium", createdAt: new Date().toISOString() },
+  { id: 3, text: "Style the UI beautifully", completed: true, priority: "low", createdAt: new Date().toISOString() },
 ];
 
-type Params = { params: { id: string } };
+// ✅ GET single todo
+export async function GET(
+  req: NextRequest,
+  context: { params: Promise<{ id: string }> }
+) {
+  const { id } = await context.params;
+  const todo = todos.find(t => t.id === Number(id));
 
-export async function GET(_req: Request, { params }: Params) {
-  const todo = todos.find(t => t.id == Number(params.id));
-  if (!todo) return Response.json({ error: "Not found" }, { status: 404 });
+  if (!todo) {
+    return Response.json({ error: "Todo not found" }, { status: 404 });
+  }
+
   return Response.json(todo);
 }
 
-export async function PUT(req: Request, { params }: Params) {
+// ✅ UPDATE todo (toggle OR edit text)
+export async function PUT(
+  req: NextRequest,
+  context: { params: Promise<{ id: string }> }
+) {
+  const { id } = await context.params;
   const body = await req.json();
-  const id = Number(params.id);
 
-  todos = todos.map(t => {
-    if (t.id !== id) return t;
-    if (body.toggle) return { ...t, completed: !t.completed };
-    return {
-      ...t,
-      text:     body.text     ?? t.text,
-      priority: body.priority ?? t.priority,
-    };
-  });
+  const index = todos.findIndex(t => t.id === Number(id));
 
-  const updated = todos.find(t => t.id === id);
-  return Response.json(updated ?? { error: "Not found" });
+  if (index === -1) {
+    return Response.json({ error: "Todo not found" }, { status: 404 });
+  }
+
+  if (body.toggle) {
+    todos[index].completed = !todos[index].completed;
+  }
+
+  if (body.text) {
+    todos[index].text = body.text;
+  }
+
+  return Response.json(todos[index]);
 }
 
-export async function DELETE(_req: Request, { params }: Params) {
-  const id = Number(params.id);
-  todos = todos.filter(t => t.id !== id);
-  return Response.json({ message: "Deleted", id });
+// ✅ DELETE todo
+export async function DELETE(
+  req: NextRequest,
+  context: { params: Promise<{ id: string }> }
+) {
+  const { id } = await context.params;
+
+  todos = todos.filter(t => t.id !== Number(id));
+
+  return Response.json({ success: true });
 }
