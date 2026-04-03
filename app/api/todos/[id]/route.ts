@@ -1,70 +1,195 @@
-import { NextRequest } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
+import type { Priority } from "../../../../lib/types";
+import { getTokenFromRequest, verifyToken } from "../../../../lib/auth";
+import { findTodoByIdAndUserId, updateTodo, deleteTodo } from "../../../../lib/db";
 
-type Priority = "low" | "medium" | "high";
-
-interface Todo {
-  id: number;
-  text: string;
-  completed: boolean;
-  priority: Priority;
-  createdAt: string;
-}
-
-// Temporary in-memory DB (will reset on deploy)
-let todos: Todo[] = [
-  { id: 1, text: "Learn Next.js App Router", completed: false, priority: "high", createdAt: new Date().toISOString() },
-  { id: 2, text: "Build CRUD with MongoDB", completed: false, priority: "medium", createdAt: new Date().toISOString() },
-  { id: 3, text: "Style the UI beautifully", completed: true, priority: "low", createdAt: new Date().toISOString() },
-];
-
-// ✅ GET single todo
+// GET single todo (with ownership verification)
 export async function GET(
   req: NextRequest,
   context: { params: Promise<{ id: string }> }
 ) {
-  const { id } = await context.params;
-  const todo = todos.find(t => t.id === Number(id));
+  try {
+    // Get token from request
+    const token = getTokenFromRequest(req);
+    
+    if (!token) {
+      return NextResponse.json(
+        { error: "Not authenticated" },
+        { status: 401 }
+      );
+    }
 
-  if (!todo) {
-    return Response.json({ error: "Todo not found" }, { status: 404 });
+    // Verify token
+    const payload = verifyToken(token);
+    
+    if (!payload) {
+      return NextResponse.json(
+        { error: "Invalid or expired token" },
+        { status: 401 }
+      );
+    }
+
+    // Get todo ID from params
+    const { id } = await context.params;
+    const todoId = Number(id);
+
+    // Find todo with ownership verification
+    const todo = findTodoByIdAndUserId(todoId, payload.userId);
+
+    if (!todo) {
+      return NextResponse.json(
+        { error: "Todo not found" },
+        { status: 404 }
+      );
+    }
+
+    return NextResponse.json(todo, { status: 200 });
+  } catch (error) {
+    console.error("Get todo error:", error);
+    return NextResponse.json(
+      { error: "Internal server error" },
+      { status: 500 }
+    );
   }
-
-  return Response.json(todo);
 }
 
-// ✅ UPDATE todo (toggle OR edit text)
+// UPDATE todo (with ownership verification)
 export async function PUT(
   req: NextRequest,
   context: { params: Promise<{ id: string }> }
 ) {
-  const { id } = await context.params;
-  const body = await req.json();
+  try {
+    // Get token from request
+    const token = getTokenFromRequest(req);
+    
+    if (!token) {
+      return NextResponse.json(
+        { error: "Not authenticated" },
+        { status: 401 }
+      );
+    }
 
-  const index = todos.findIndex(t => t.id === Number(id));
+    // Verify token
+    const payload = verifyToken(token);
+    
+    if (!payload) {
+      return NextResponse.json(
+        { error: "Invalid or expired token" },
+        { status: 401 }
+      );
+    }
 
-  if (index === -1) {
-    return Response.json({ error: "Todo not found" }, { status: 404 });
+    // Get todo ID from params
+    const { id } = await context.params;
+    const todoId = Number(id);
+
+    // Get request body
+    const body = await req.json();
+
+    // Find todo with ownership verification
+    const existingTodo = findTodoByIdAndUserId(todoId, payload.userId);
+
+    if (!existingTodo) {
+      return NextResponse.json(
+        { error: "Todo not found" },
+        { status: 404 }
+      );
+    }
+
+    // Build updates object
+    const updates: { text?: string; completed?: boolean; priority?: Priority } = {};
+    
+    if (body.toggle !== undefined) {
+      updates.completed = !existingTodo.completed;
+    }
+    
+    if (body.text !== undefined) {
+      updates.text = body.text;
+    }
+
+    if (body.priority !== undefined) {
+      updates.priority = body.priority as Priority;
+    }
+
+    // Update todo
+    const updatedTodo = updateTodo(todoId, payload.userId, updates);
+
+    if (!updatedTodo) {
+      return NextResponse.json(
+        { error: "Failed to update todo" },
+        { status: 500 }
+      );
+    }
+
+    return NextResponse.json(updatedTodo, { status: 200 });
+  } catch (error) {
+    console.error("Update todo error:", error);
+    return NextResponse.json(
+      { error: "Internal server error" },
+      { status: 500 }
+    );
   }
-
-  if (body.toggle) {
-    todos[index].completed = !todos[index].completed;
-  }
-
-  if (body.text) {
-    todos[index].text = body.text;
-  }
-
-  return Response.json(todos[index]);
 }
 
-// ✅ DELETE todo
+// DELETE todo (with ownership verification)
 export async function DELETE(
   req: NextRequest,
   context: { params: Promise<{ id: string }> }
 ) {
-  const { id } = await context.params;
+  try {
+    // Get token from request
+    const token = getTokenFromRequest(req);
+    
+    if (!token) {
+      return NextResponse.json(
+        { error: "Not authenticated" },
+        { status: 401 }
+      );
+    }
 
-  todos = todos.filter(t => t.id !== Number(id));
+    // Verify token
+    const payload = verifyToken(token);
+    
+    if (!payload) {
+      return NextResponse.json(
+        { error: "Invalid or expired token" },
+        { status: 401 }
+      );
+    }
 
-  return Response.json({ success: true });
+    // Get todo ID from params
+    const { id } = await context.params;
+    const todoId = Number(id);
+
+    // Find todo with ownership verification
+    const existingTodo = findTodoByIdAndUserId(todoId, payload.userId);
+
+    if (!existingTodo) {
+      return NextResponse.json(
+        { error: "Todo not found" },
+        { status: 404 }
+      );
+    }
+
+    // Delete todo
+    const success = deleteTodo(todoId, payload.userId);
+
+    if (!success) {
+      return NextResponse.json(
+        { error: "Failed to delete todo" },
+        { status: 500 }
+      );
+    }
+
+    return NextResponse.json(
+      { success: true },
+      { status: 200 }
+    );
+  } catch (error) {
+    console.error("Delete todo error:", error);
+    return NextResponse.json(
+      { error: "Internal server error" },
+      { status: 500 }
+    );
+  }
 }

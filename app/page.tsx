@@ -2,6 +2,8 @@
 "use client";
 
 import { useEffect, useState, useRef } from "react";
+import { useAuth, THEME_COLORS } from "../context/AuthContext";
+import { useRouter } from "next/navigation";
 
 type Priority = "low" | "medium" | "high";
 type Filter = "all" | "active" | "completed";
@@ -26,6 +28,9 @@ const PRIORITY_CONFIG: Record<Priority, {
 };
 
 export default function Home() {
+  const { user, loading: authLoading, logout, themeColor } = useAuth();
+  const router = useRouter();
+  
   const [todos, setTodos] = useState<Todo[]>([]);
   const [text, setText] = useState("");
   const [priority, setPriority] = useState<Priority>("medium");
@@ -34,13 +39,33 @@ export default function Home() {
   const [editText, setEditText] = useState("");
   const [loading, setLoading] = useState(true);
   const [adding, setAdding] = useState(false);
+  const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
 
   const inputRef = useRef<HTMLInputElement>(null);
 
+  // Get theme config
+  const theme = THEME_COLORS[themeColor];
+
+  // Redirect to login if not authenticated
+  useEffect(() => {
+    if (!authLoading && !user) {
+      router.push("/login");
+    }
+  }, [user, authLoading, router]);
+
+  const handleLogout = async () => {
+    await logout();
+    router.push("/login");
+  };
+
   const fetchTodos = async () => {
     const res = await fetch("/api/todos");
-    const data = await res.json();
-    setTodos(data);
+    if (res.ok) {
+      const data = await res.json();
+      setTodos(data);
+    } else {
+      setTodos([]);
+    }
     setLoading(false);
   };
 
@@ -243,15 +268,15 @@ export default function Home() {
         }
 
         .main-input:focus {
-          border-color: #6366f1;
-          box-shadow: 0 0 0 4px rgba(99, 102, 241, 0.1);
+          border-color: ${theme.primary};
+          box-shadow: 0 0 0 4px ${theme.primary}20;
         }
 
         .add-btn {
           width: 58px;
           height: 58px;
           border-radius: 16px;
-          background: linear-gradient(135deg, #6366f1, #8b5cf6);
+          background: ${theme.gradient};
           color: white;
           border: none;
           font-size: 28px;
@@ -259,7 +284,7 @@ export default function Home() {
           align-items: center;
           justify-content: center;
           cursor: pointer;
-          box-shadow: 0 8px 25px rgba(99, 102, 241, 0.3);
+          box-shadow: ${theme.boxShadow};
           transition: all 0.2s;
         }
 
@@ -287,9 +312,9 @@ export default function Home() {
         }
 
         .priority-btn.active {
-          border-color: #6366f1;
-          background: #f0f0ff;
-          color: #4f46e5;
+          border-color: ${theme.primary};
+          background: ${theme.primary}15;
+          color: ${theme.primary};
         }
 
         /* Filters */
@@ -361,7 +386,7 @@ export default function Home() {
         }
 
         .checkbox.checked {
-          background: linear-gradient(135deg, #6366f1, #8b5cf6);
+          background: ${theme.gradient};
           border-color: transparent;
         }
 
@@ -380,7 +405,7 @@ export default function Home() {
         .edit-input {
           flex: 1;
           background: #f8fafc;
-          border: 2px solid #6366f1;
+          border: 2px solid ${theme.primary};
           border-radius: 12px;
           padding: 12px 16px;
           font-size: 1.05rem;
@@ -456,11 +481,124 @@ export default function Home() {
           font-size: 0.95rem;
         }
 
+        /* Profile Button */
+        .profile-btn {
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          padding: 8px;
+          background: ${theme.gradient};
+          border: none;
+          border-radius: 50%;
+          cursor: pointer;
+          transition: all 0.2s;
+          box-shadow: ${theme.boxShadow};
+        }
+
+        .profile-btn:hover {
+          transform: scale(1.05);
+        }
+
+        .profile-avatar-small {
+          width: 40px;
+          height: 40px;
+          border-radius: 50%;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          color: white;
+          font-weight: 700;
+          font-size: 1rem;
+        }
+
+        /* Modal */
+        .modal-overlay {
+          position: fixed;
+          top: 0;
+          left: 0;
+          right: 0;
+          bottom: 0;
+          background: rgba(0, 0, 0, 0.5);
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          z-index: 1000;
+          padding: 1rem;
+        }
+
+        .modal-content {
+          background: white;
+          border-radius: 24px;
+          padding: 2.5rem;
+          max-width: 400px;
+          width: 100%;
+          box-shadow: 0 20px 60px rgba(0, 0, 0, 0.2);
+        }
+
+        .modal-title {
+          font-family: 'Space Grotesk', sans-serif;
+          font-size: 1.4rem;
+          font-weight: 700;
+          color: #0f172a;
+          margin-bottom: 0.5rem;
+        }
+
+        .modal-text {
+          color: #64748b;
+          font-size: 0.95rem;
+          margin-bottom: 1.5rem;
+        }
+
+        .modal-actions {
+          display: flex;
+          gap: 12px;
+        }
+
+        .modal-actions button {
+          flex: 1;
+        }
+
+        .btn-secondary {
+          padding: 12px 24px;
+          background: #f1f5f9;
+          color: #64748b;
+          border: 1px solid #e2e8f0;
+          border-radius: 12px;
+          font-size: 0.95rem;
+          font-weight: 500;
+          cursor: pointer;
+        }
+
+        .btn-danger {
+          padding: 12px 24px;
+          background: #fef2f2;
+          color: #dc2626;
+          border: 1px solid #fecaca;
+          border-radius: 12px;
+          font-size: 0.95rem;
+          font-weight: 500;
+          cursor: pointer;
+        }
+
+        /* Responsive */
         @media (max-width: 640px) {
-          .dashboard { padding: 1.25rem 1rem; }
-          .header { margin-bottom: 2rem; }
+          .dashboard { padding: 1rem 0.75rem; }
+          .header { margin-bottom: 2rem; flex-direction: column; align-items: stretch; }
+          .header-left h1 { font-size: 1.8rem; }
+          .stats { justify-content: center; flex-wrap: wrap; }
+          .stat-card { min-width: 90px; padding: 0.75rem 1rem; }
+          .stat-number { font-size: 1.4rem; }
+          .stat-label { font-size: 0.7rem; }
           .main-content { gap: 1.5rem; }
-          .todo-header, .input-area, .todo-list { padding-left: 1.5rem; padding-right: 1.5rem; }
+          .todo-header, .input-area, .todo-list { padding-left: 1rem; padding-right: 1rem; }
+          .input-row { flex-direction: column; }
+          .add-btn { width: 100%; height: 48px; border-radius: 14px; font-size: 1.2rem; }
+          .priority-group { flex-wrap: wrap; }
+          .priority-btn { padding: 10px 12px; font-size: 0.85rem; }
+          .filters { margin: 0 1rem 1.5rem; }
+          .sidebar { padding: 1.5rem; }
+          .todo-item { padding: 1rem; }
+          .profile-avatar-small { width: 36px; height: 36px; font-size: 0.85rem; }
         }
       `}</style>
 
@@ -469,23 +607,39 @@ export default function Home() {
           {/* Header */}
           <div className="header">
             <div className="header-left">
-              <h1>Welcome</h1>
+              <h1>
+                {user ? `Welcome, ${user.name}!` : 'Welcome'}
+              </h1>
               <p>Stay organized • Get things done</p>
             </div>
 
-            <div className="stats">
-              <div className="stat-card"> 
-                <div className="stat-number">{activeCount}</div>
-                <div className="stat-label">Remaining</div>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
+              <div className="stats">
+                <div className="stat-card"> 
+                  <div className="stat-number">{activeCount}</div>
+                  <div className="stat-label">Remaining</div>
+                </div>
+                <div className="stat-card">
+                  <div className="stat-number">{completedCount}</div>
+                  <div className="stat-label">Completed</div>
+                </div>
+                <div className="stat-card">
+                  <div className="stat-number">{totalCount}</div>
+                  <div className="stat-label">Total</div>
+                </div>
               </div>
-              <div className="stat-card">
-                <div className="stat-number">{completedCount}</div>
-                <div className="stat-label">Completed</div>
-              </div>
-              <div className="stat-card">
-                <div className="stat-number">{totalCount}</div>
-                <div className="stat-label">Total</div>
-              </div>
+              
+              {user && (
+                <button
+                  className="profile-btn"
+                  onClick={() => router.push('/profile')}
+                  title="Profile"
+                >
+                  <div className="profile-avatar-small">
+                    {user.name.charAt(0).toUpperCase()}
+                  </div>
+                </button>
+              )}
             </div>
           </div>
 
@@ -655,6 +809,24 @@ export default function Home() {
           </div>
         </div>
       </div>
+
+      {/* Logout Confirmation Modal */}
+      {showLogoutConfirm && (
+        <div className="modal-overlay" onClick={() => setShowLogoutConfirm(false)}>
+          <div className="modal-content" onClick={(e) => e.stopPropagation()}>
+            <h2 className="modal-title">Logout?</h2>
+            <p className="modal-text">Are you sure you want to logout? You will be redirected to the login page.</p>
+            <div className="modal-actions">
+              <button className="btn-secondary" onClick={() => setShowLogoutConfirm(false)}>
+                Cancel
+              </button>
+              <button className="btn-danger" onClick={handleLogout}>
+                Logout
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </>
   );
 }
