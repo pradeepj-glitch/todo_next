@@ -469,7 +469,7 @@ export default function Home() {
           {/* Header */}
           <div className="header">
             <div className="header-left">
-              <h1>Dashboard</h1>
+              <h1>Welcome</h1>
               <p>Stay organized • Get things done</p>
             </div>
 
