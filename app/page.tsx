@@ -28,7 +28,7 @@ const PRIORITY_CONFIG: Record<Priority, {
 };
 
 export default function Home() {
-  const { user, loading: authLoading, logout, themeColor } = useAuth();
+  const { user, loading: authLoading, logout, themeColor, darkMode } = useAuth();
   const router = useRouter();
   
   const [todos, setTodos] = useState<Todo[]>([]);
@@ -45,6 +45,16 @@ export default function Home() {
 
   // Get theme config
   const theme = THEME_COLORS[themeColor];
+
+  // Dark mode colors
+  const isDark = darkMode;
+  const bgColor = isDark ? '#0f172a' : '#f8fafc';
+  const cardBg = isDark ? '#1e293b' : 'white';
+  const textColor = isDark ? '#e2e8f0' : '#1e2937';
+  const borderColor = isDark ? '#334155' : '#f1f5f9';
+  const inputBg = isDark ? '#334155' : '#f8fafc';
+  const mutedColor = isDark ? '#94a3b8' : '#64748b';
+  const headingColor = isDark ? '#f1f5f9' : '#0f172a';
 
   // Redirect to login if not authenticated
   useEffect(() => {
@@ -143,15 +153,17 @@ export default function Home() {
 
         body {
           font-family: 'Inter', system_ui, sans-serif;
-          background: #f8fafc;
-          color: #1e2937;
+          background: ${bgColor};
+          color: ${textColor};
           min-height: 100vh;
+          transition: background 0.3s, color 0.3s;
         }
 
         .dashboard {
           min-height: 100vh;
           padding: 2rem 1.5rem;
-          background: linear-gradient(145deg, #f8fafc 0%, #f1f5f9 100%);
+          background: ${bgColor};
+          transition: background 0.3s;
         }
 
         .container {
@@ -159,7 +171,6 @@ export default function Home() {
           margin: 0 auto;
         }
 
-        /* Top Navigation / Header */
         .header {
           display: flex;
           justify-content: space-between;
@@ -174,11 +185,12 @@ export default function Home() {
           font-size: 2.8rem;
           font-weight: 700;
           letter-spacing: -0.04em;
-          color: #0f172a;
+          color: ${headingColor};
+          transition: color 0.3s;
         }
 
         .header-left p {
-          color: #64748b;
+          color: ${mutedColor};
           margin-top: 4px;
         }
 
@@ -188,27 +200,27 @@ export default function Home() {
         }
 
         .stat-card {
-          background: white;
+          background: ${cardBg};
           padding: 1rem 1.5rem;
           border-radius: 16px;
-          box-shadow: 0 4px 20px rgba(0, 0, 0, 0.06);
-          border: 1px solid #e2e8f0;
+          box-shadow: 0 4px 20px rgba(0, 0, 0, ${isDark ? '0.2' : '0.06'});
+          border: 1px solid ${borderColor};
           min-width: 140px;
+          transition: background 0.3s;
         }
 
         .stat-number {
           font-size: 2rem;
           font-weight: 700;
-          color: #1e2937;
+          color: ${textColor};
         }
 
         .stat-label {
           font-size: 0.875rem;
-          color: #64748b;
+          color: ${mutedColor};
           margin-top: 4px;
         }
 
-        /* Main Content */
         .main-content {
           display: grid;
           grid-template-columns: 1fr 320px;
@@ -221,19 +233,19 @@ export default function Home() {
           }
         }
 
-        /* Left Column - Todo Area */
         .todo-section {
-          background: white;
+          background: ${cardBg};
           border-radius: 24px;
-          box-shadow: 0 10px 40px rgba(0, 0, 0, 0.07);
-          border: 1px solid #f1f5f9;
+          box-shadow: 0 10px 40px rgba(0, 0, 0, ${isDark ? '0.2' : '0.07'});
+          border: 1px solid ${borderColor};
           overflow: hidden;
           height: fit-content;
+          transition: background 0.3s;
         }
 
         .todo-header {
           padding: 1.75rem 2rem;
-          border-bottom: 1px solid #f1f5f9;
+          border-bottom: 1px solid ${borderColor};
           display: flex;
           justify-content: space-between;
           align-items: center;
@@ -242,13 +254,12 @@ export default function Home() {
         .todo-header h2 {
           font-size: 1.35rem;
           font-weight: 600;
-          color: #1e2937;
+          color: ${textColor};
         }
 
-        /* Input */
         .input-area {
           padding: 2rem;
-          border-bottom: 1px solid #f1f5f9;
+          border-bottom: 1px solid ${borderColor};
         }
 
         .input-row {
@@ -258,13 +269,14 @@ export default function Home() {
 
         .main-input {
           flex: 1;
-          background: #f8fafc;
-          border: 2px solid #e2e8f0;
+          background: ${inputBg};
+          border: 2px solid ${borderColor};
           border-radius: 16px;
           padding: 16px 20px;
           font-size: 1.1rem;
           outline: none;
           transition: all 0.2s;
+          color: ${textColor};
         }
 
         .main-input:focus {
@@ -290,7 +302,6 @@ export default function Home() {
 
         .add-btn:hover { transform: scale(1.06); }
 
-        /* Priority */
         .priority-group {
           display: flex;
           gap: 10px;
@@ -301,14 +312,15 @@ export default function Home() {
           flex: 1;
           padding: 12px 16px;
           border-radius: 14px;
-          border: 2px solid #e2e8f0;
-          background: white;
+          border: 2px solid ${borderColor};
+          background: ${cardBg};
           font-weight: 500;
           display: flex;
           align-items: center;
           gap: 10px;
           cursor: pointer;
           transition: all 0.2s;
+          color: ${textColor};
         }
 
         .priority-btn.active {
@@ -317,10 +329,9 @@ export default function Home() {
           color: ${theme.primary};
         }
 
-        /* Filters */
         .filters {
           display: flex;
-          background: #f8fafc;
+          background: ${inputBg};
           padding: 8px;
           border-radius: 9999px;
           margin: 0 2rem 1.5rem;
@@ -333,18 +344,17 @@ export default function Home() {
           border: none;
           background: transparent;
           font-weight: 500;
-          color: #64748b;
+          color: ${mutedColor};
           cursor: pointer;
           transition: all 0.2s;
         }
 
         .filter-btn.active {
-          background: white;
-          color: #1e2937;
-          box-shadow: 0 4px 15px rgba(0, 0, 0, 0.08);
+          background: ${cardBg};
+          color: ${textColor};
+          box-shadow: 0 4px 15px rgba(0, 0, 0, ${isDark ? '0.3' : '0.08'});
         }
 
-        /* Todo List */
         .todo-list {
           padding: 0 2rem 2rem;
           display: flex;
@@ -353,8 +363,8 @@ export default function Home() {
         }
 
         .todo-item {
-          background: white;
-          border: 1px solid #f1f5f9;
+          background: ${cardBg};
+          border: 1px solid ${borderColor};
           border-radius: 18px;
           padding: 1.1rem 1.5rem;
           display: flex;
@@ -364,8 +374,8 @@ export default function Home() {
         }
 
         .todo-item:hover {
-          border-color: #cbd5e1;
-          box-shadow: 0 10px 25px rgba(0, 0, 0, 0.06);
+          border-color: ${mutedColor};
+          box-shadow: 0 10px 25px rgba(0, 0, 0, ${isDark ? '0.15' : '0.06'});
           transform: translateY(-2px);
         }
 
@@ -376,7 +386,7 @@ export default function Home() {
         .checkbox {
           width: 28px;
           height: 28px;
-          border: 2.5px solid #cbd5e1;
+          border: 2.5px solid ${mutedColor};
           border-radius: 10px;
           display: flex;
           align-items: center;
@@ -394,22 +404,23 @@ export default function Home() {
           flex: 1;
           font-size: 1.08rem;
           line-height: 1.5;
-          color: #334155;
+          color: ${textColor};
         }
 
         .todo-text.done {
           text-decoration: line-through;
-          color: #94a3b8;
+          color: ${mutedColor};
         }
 
         .edit-input {
           flex: 1;
-          background: #f8fafc;
+          background: ${inputBg};
           border: 2px solid ${theme.primary};
           border-radius: 12px;
           padding: 12px 16px;
           font-size: 1.05rem;
           outline: none;
+          color: ${textColor};
         }
 
         .actions {
@@ -428,31 +439,31 @@ export default function Home() {
           align-items: center;
           justify-content: center;
           font-size: 1.1rem;
-          background: #f8fafc;
-          color: #64748b;
-          border: 1px solid #e2e8f0;
+          background: ${inputBg};
+          color: ${mutedColor};
+          border: 1px solid ${borderColor};
           transition: all 0.2s;
         }
 
         .icon-btn:hover {
-          background: #f1f5f9;
-          color: #475569;
+          background: ${borderColor};
+          color: ${textColor};
         }
 
-        /* Sidebar */
         .sidebar {
-          background: white;
+          background: ${cardBg};
           border-radius: 24px;
           padding: 2rem;
-          box-shadow: 0 10px 40px rgba(0, 0, 0, 0.07);
-          border: 1px solid #f1f5f9;
+          box-shadow: 0 10px 40px rgba(0, 0, 0, ${isDark ? '0.2' : '0.07'});
+          border: 1px solid ${borderColor};
           height: fit-content;
+          transition: background 0.3s;
         }
 
         .sidebar h3 {
           font-size: 1.1rem;
           margin-bottom: 1.5rem;
-          color: #1e2937;
+          color: ${textColor};
         }
 
         .priority-legend {
@@ -473,15 +484,13 @@ export default function Home() {
           border-radius: 50%;
         }
 
-        /* Footer */
         .footer {
           margin-top: 3rem;
           text-align: center;
-          color: #64748b;
+          color: ${mutedColor};
           font-size: 0.95rem;
         }
 
-        /* Profile Button */
         .profile-btn {
           display: flex;
           align-items: center;
@@ -511,7 +520,6 @@ export default function Home() {
           font-size: 1rem;
         }
 
-        /* Modal */
         .modal-overlay {
           position: fixed;
           top: 0;
@@ -527,24 +535,25 @@ export default function Home() {
         }
 
         .modal-content {
-          background: white;
+          background: ${cardBg};
           border-radius: 24px;
           padding: 2.5rem;
           max-width: 400px;
           width: 100%;
           box-shadow: 0 20px 60px rgba(0, 0, 0, 0.2);
+          color: ${textColor};
         }
 
         .modal-title {
           font-family: 'Space Grotesk', sans-serif;
           font-size: 1.4rem;
           font-weight: 700;
-          color: #0f172a;
+          color: ${headingColor};
           margin-bottom: 0.5rem;
         }
 
         .modal-text {
-          color: #64748b;
+          color: ${mutedColor};
           font-size: 0.95rem;
           margin-bottom: 1.5rem;
         }
@@ -560,9 +569,9 @@ export default function Home() {
 
         .btn-secondary {
           padding: 12px 24px;
-          background: #f1f5f9;
-          color: #64748b;
-          border: 1px solid #e2e8f0;
+          background: ${inputBg};
+          color: ${mutedColor};
+          border: 1px solid ${borderColor};
           border-radius: 12px;
           font-size: 0.95rem;
           font-weight: 500;
@@ -580,7 +589,6 @@ export default function Home() {
           cursor: pointer;
         }
 
-        /* Responsive */
         @media (max-width: 640px) {
           .dashboard { padding: 1rem 0.75rem; }
           .header { margin-bottom: 2rem; flex-direction: column; align-items: stretch; }
@@ -604,7 +612,6 @@ export default function Home() {
 
       <div className="dashboard">
         <div className="container">
-          {/* Header */}
           <div className="header">
             <div className="header-left">
               <h1>
@@ -644,16 +651,14 @@ export default function Home() {
           </div>
 
           <div className="main-content">
-            {/* Main Todo Section */}
             <div className="todo-section">
               <div className="todo-header">
                 <h2>My Tasks</h2>
-                <span style={{ color: '#64748b', fontSize: '0.95rem' }}>
+                <span style={{ color: mutedColor, fontSize: '0.95rem' }}>
                   {filter === 'all' ? 'All Tasks' : filter === 'active' ? 'Active' : 'Completed'}
                 </span>
               </div>
 
-              {/* Input Area */}
               <div className="input-area">
                 <div className="input-row">
                   <input
@@ -688,7 +693,6 @@ export default function Home() {
                 </div>
               </div>
 
-              {/* Filters */}
               <div className="filters">
                 {(["all", "active", "completed"] as Filter[]).map((f) => (
                   <button
@@ -701,12 +705,11 @@ export default function Home() {
                 ))}
               </div>
 
-              {/* Todo List */}
               <div className="todo-list">
                 {loading ? (
-                  <div style={{ textAlign: 'center', padding: '3rem', color: '#64748b' }}>Loading tasks...</div>
+                  <div style={{ textAlign: 'center', padding: '3rem', color: mutedColor }}>Loading tasks...</div>
                 ) : filteredTodos.length === 0 ? (
-                  <div style={{ textAlign: 'center', padding: '4rem 2rem', color: '#94a3b8' }}>
+                  <div style={{ textAlign: 'center', padding: '4rem 2rem', color: mutedColor }}>
                     <div style={{ fontSize: '3.5rem', marginBottom: '1rem' }}>📋</div>
                     <p>No {filter} tasks yet</p>
                   </div>
@@ -764,7 +767,6 @@ export default function Home() {
               </div>
             </div>
 
-            {/* Sidebar */}
             <div className="sidebar">
               <h3>Priority Overview</h3>
               <div className="priority-legend">
@@ -777,21 +779,21 @@ export default function Home() {
                       <div style={{ flex: 1 }}>
                         <strong>{cfg.label}</strong>
                       </div>
-                      <div style={{ color: '#64748b', fontWeight: 500 }}>{count}</div>
+                      <div style={{ color: mutedColor, fontWeight: 500 }}>{count}</div>
                     </div>
                   );
                 })}
               </div>
 
-              <div style={{ marginTop: '3rem', paddingTop: '2rem', borderTop: '1px solid #f1f5f9' }}>
+              <div style={{ marginTop: '3rem', paddingTop: '2rem', borderTop: `1px solid ${borderColor}` }}>
                 <button 
                   onClick={clearCompleted}
                   disabled={completedCount === 0}
                   style={{
                     width: '100%',
                     padding: '14px',
-                    background: completedCount > 0 ? '#fee2e2' : '#f1f5f9',
-                    color: completedCount > 0 ? '#ef4444' : '#94a3b8',
+                    background: completedCount > 0 ? '#fee2e2' : inputBg,
+                    color: completedCount > 0 ? '#ef4444' : mutedColor,
                     border: 'none',
                     borderRadius: '14px',
                     fontWeight: 600,
@@ -810,7 +812,6 @@ export default function Home() {
         </div>
       </div>
 
-      {/* Logout Confirmation Modal */}
       {showLogoutConfirm && (
         <div className="modal-overlay" onClick={() => setShowLogoutConfirm(false)}>
           <div className="modal-content" onClick={(e) => e.stopPropagation()}>

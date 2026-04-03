@@ -76,6 +76,8 @@ interface AuthContextType {
   loading: boolean;
   themeColor: ThemeColor;
   setThemeColor: (color: ThemeColor) => void;
+  darkMode: boolean;
+  toggleDarkMode: () => void;
   login: (email: string, password: string) => Promise<{ success: boolean; error?: string }>;
   register: (email: string, password: string, name: string) => Promise<{ success: boolean; error?: string }>;
   logout: () => Promise<void>;
@@ -89,6 +91,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
   const [themeColor, setThemeColorState] = useState<ThemeColor>('indigo');
+  const [darkMode, setDarkModeState] = useState(false);
 
   const checkAuth = useCallback(async () => {
     try {
@@ -96,10 +99,15 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       if (res.ok) {
         const data = await res.json();
         setUser(data.user);
-        // Load saved theme color from localStorage
-        const savedTheme = localStorage.getItem('themeColor') as ThemeColor;
+        // Load saved theme color from localStorage (user-specific key)
+        const savedTheme = localStorage.getItem(`themeColor_${data.user.id}`) as ThemeColor;
         if (savedTheme && THEME_COLORS[savedTheme]) {
           setThemeColorState(savedTheme);
+        }
+        // Load dark mode preference (user-specific key)
+        const savedDarkMode = localStorage.getItem(`darkMode_${data.user.id}`);
+        if (savedDarkMode === 'true') {
+          setDarkModeState(true);
         }
       } else {
         setUser(null);
@@ -118,8 +126,22 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const setThemeColor = useCallback((color: ThemeColor) => {
     setThemeColorState(color);
-    localStorage.setItem('themeColor', color);
-  }, []);
+    // Store per-user
+    if (user) {
+      localStorage.setItem(`themeColor_${user.id}`, color);
+    }
+  }, [user]);
+
+  const toggleDarkMode = useCallback(() => {
+    setDarkModeState((prev) => {
+      const newValue = !prev;
+      // Store per-user
+      if (user) {
+        localStorage.setItem(`darkMode_${user.id}`, String(newValue));
+      }
+      return newValue;
+    });
+  }, [user]);
 
   const updateUser = useCallback((userData: Partial<User>) => {
     setUser(prev => prev ? { ...prev, ...userData } : null);
@@ -184,7 +206,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       user, 
       loading, 
       themeColor, 
-      setThemeColor, 
+      setThemeColor,
+      darkMode,
+      toggleDarkMode, 
       login, 
       register, 
       logout, 

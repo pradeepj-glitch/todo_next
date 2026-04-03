@@ -6,10 +6,23 @@ import { useRouter } from "next/navigation";
 import "../globals.css";
 
 export default function ProfilePage() {
-  const { user, loading: authLoading, logout, themeColor, setThemeColor, updateUser } = useAuth();
+  const { user, loading: authLoading, logout, themeColor, setThemeColor, darkMode, toggleDarkMode, updateUser } = useAuth();
   const router = useRouter();
   const initialized = useRef(false);
   
+  // Dark mode colors
+  const isDark = darkMode;
+  const bgColor = isDark ? '#0f172a' : '#f8fafc';
+  const cardBg = isDark ? '#1e293b' : 'white';
+  const textColor = isDark ? '#e2e8f0' : '#1e2937';
+  const borderColor = isDark ? '#334155' : '#f1f5f9';
+  const inputBg = isDark ? '#334155' : '#f8fafc';
+  const mutedColor = isDark ? '#94a3b8' : '#64748b';
+  const headingColor = isDark ? '#f1f5f9' : '#0f172a';
+  const formLabelColor = isDark ? '#94a3b8' : '#334155';
+  const disabledBg = isDark ? '#1e293b' : '#f1f5f9';
+  const disabledColor = isDark ? '#64748b' : '#94a3b8';
+
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [currentPassword, setCurrentPassword] = useState("");
@@ -23,6 +36,7 @@ export default function ProfilePage() {
   // Initialize form data from user
   useEffect(() => {
     if (!initialized.current && user) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect
       setName(user.name);
       setEmail(user.email);
       initialized.current = true;
@@ -79,6 +93,7 @@ export default function ProfilePage() {
       } else {
         setMessage({ type: 'error', text: data.error || 'Failed to update profile' });
       }
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
     } catch (error) {
       setMessage({ type: 'error', text: 'Network error. Please try again.' });
     }
@@ -114,15 +129,17 @@ export default function ProfilePage() {
 
         body {
           font-family: 'Inter', system_ui, sans-serif;
-          background: linear-gradient(145deg, #f8fafc 0%, #f1f5f9 100%);
-          color: #1e2937;
+          background: ${bgColor};
+          color: ${textColor};
           min-height: 100vh;
+          transition: background 0.3s, color 0.3s;
         }
 
         .profile-page {
           min-height: 100vh;
           padding: 2rem 1rem;
-          background: linear-gradient(145deg, #f8fafc 0%, #f1f5f9 100%);
+          background: ${bgColor};
+          transition: background 0.3s;
         }
 
         .profile-container {
@@ -135,6 +152,8 @@ export default function ProfilePage() {
           align-items: center;
           justify-content: space-between;
           margin-bottom: 2rem;
+          gap: 1rem;
+          flex-wrap: wrap;
         }
 
         .profile-back-btn {
@@ -142,10 +161,10 @@ export default function ProfilePage() {
           align-items: center;
           gap: 0.5rem;
           padding: 10px 20px;
-          background: white;
-          border: 1px solid #e2e8f0;
+          background: ${cardBg};
+          border: 1px solid ${borderColor};
           border-radius: 12px;
-          color: #64748b;
+          color: ${mutedColor};
           font-size: 0.95rem;
           font-weight: 500;
           cursor: pointer;
@@ -153,28 +172,30 @@ export default function ProfilePage() {
         }
 
         .profile-back-btn:hover {
-          background: #f8fafc;
-          color: #475569;
+          background: ${borderColor};
+          color: ${textColor};
         }
 
         .profile-card {
-          background: white;
+          background: ${cardBg};
           border-radius: 24px;
           padding: 2.5rem;
-          box-shadow: 0 10px 40px rgba(0, 0, 0, 0.07);
-          border: 1px solid #f1f5f9;
+          box-shadow: 0 10px 40px rgba(0, 0, 0, ${isDark ? '0.2' : '0.07'});
+          border: 1px solid ${borderColor};
+          transition: background 0.3s;
         }
 
         .profile-title {
           font-family: 'Space Grotesk', sans-serif;
           font-size: 1.8rem;
           font-weight: 700;
-          color: #0f172a;
+          color: ${headingColor};
           margin-bottom: 0.5rem;
+          transition: color 0.3s;
         }
 
         .profile-subtitle {
-          color: #64748b;
+          color: ${mutedColor};
           font-size: 0.95rem;
           margin-bottom: 2rem;
         }
@@ -202,19 +223,21 @@ export default function ProfilePage() {
           display: block;
           font-size: 0.9rem;
           font-weight: 500;
-          color: #334155;
+          color: ${formLabelColor};
           margin-bottom: 0.5rem;
+          transition: color 0.3s;
         }
 
         .form-input {
           width: 100%;
           padding: 14px 18px;
-          border: 2px solid #e2e8f0;
+          border: 2px solid ${borderColor};
           border-radius: 14px;
           font-size: 1rem;
           outline: none;
           transition: all 0.2s;
-          background: #f8fafc;
+          background: ${inputBg};
+          color: ${textColor};
         }
 
         .form-input:focus {
@@ -223,8 +246,8 @@ export default function ProfilePage() {
         }
 
         .form-input:disabled {
-          background: #f1f5f9;
-          color: #94a3b8;
+          background: ${disabledBg};
+          color: ${disabledColor};
         }
 
         .form-message {
@@ -273,9 +296,9 @@ export default function ProfilePage() {
 
         .btn-secondary {
           padding: 12px 24px;
-          background: #f1f5f9;
-          color: #64748b;
-          border: 1px solid #e2e8f0;
+          background: ${inputBg};
+          color: ${mutedColor};
+          border: 1px solid ${borderColor};
           border-radius: 12px;
           font-size: 0.95rem;
           font-weight: 500;
@@ -284,8 +307,8 @@ export default function ProfilePage() {
         }
 
         .btn-secondary:hover {
-          background: #e2e8f0;
-          color: #475569;
+          background: ${borderColor};
+          color: ${textColor};
         }
 
         .btn-danger {
@@ -320,14 +343,15 @@ export default function ProfilePage() {
         .theme-section {
           margin-top: 2rem;
           padding-top: 2rem;
-          border-top: 1px solid #f1f5f9;
+          border-top: 1px solid ${borderColor};
         }
 
         .theme-title {
           font-size: 1rem;
           font-weight: 600;
-          color: #334155;
+          color: ${textColor};
           margin-bottom: 1rem;
+          transition: color 0.3s;
         }
 
         .theme-colors {
@@ -350,14 +374,14 @@ export default function ProfilePage() {
         }
 
         .theme-color-btn.active {
-          border-color: #1e2937;
+          border-color: ${headingColor};
           box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
         }
 
         .logout-section {
           margin-top: 2rem;
           padding-top: 2rem;
-          border-top: 1px solid #f1f5f9;
+          border-top: 1px solid ${borderColor};
           display: flex;
           justify-content: flex-end;
         }
@@ -377,7 +401,7 @@ export default function ProfilePage() {
         }
 
         .modal-content {
-          background: white;
+          background: ${cardBg};
           border-radius: 24px;
           padding: 2.5rem;
           max-width: 400px;
@@ -389,12 +413,13 @@ export default function ProfilePage() {
           font-family: 'Space Grotesk', sans-serif;
           font-size: 1.4rem;
           font-weight: 700;
-          color: #0f172a;
+          color: ${headingColor};
           margin-bottom: 0.5rem;
+          transition: color 0.3s;
         }
 
         .modal-text {
-          color: #64748b;
+          color: ${mutedColor};
           font-size: 0.95rem;
           margin-bottom: 1.5rem;
         }
@@ -411,7 +436,7 @@ export default function ProfilePage() {
         .profile-loading {
           text-align: center;
           padding: 4rem;
-          color: #64748b;
+          color: ${mutedColor};
           font-size: 1.1rem;
         }
 
@@ -463,6 +488,47 @@ export default function ProfilePage() {
             >
               ← Back to Todos
             </button>
+            {/* Dark Mode Toggle - moved to top */}
+            <div style={{ 
+              display: 'flex', 
+              alignItems: 'center', 
+              gap: '12px',
+              padding: '8px 16px',
+              background: cardBg,
+              borderRadius: '14px',
+              border: `1px solid ${borderColor}`
+            }}>
+              <span style={{ fontSize: '1.2rem' }}>{darkMode ? '🌙' : '☀️'}</span>
+              <span style={{ fontWeight: 600, fontSize: '0.9rem', color: textColor }}>
+                {darkMode ? 'Dark' : 'Light'}
+              </span>
+              <button
+                onClick={toggleDarkMode}
+                style={{
+                  width: '52px',
+                  height: '28px',
+                  borderRadius: '14px',
+                  background: darkMode ? theme.primary : '#cbd5e1',
+                  border: 'none',
+                  cursor: 'pointer',
+                  position: 'relative',
+                  transition: 'all 0.3s',
+                }}
+                title="Toggle dark mode"
+              >
+                <div style={{
+                  width: '22px',
+                  height: '22px',
+                  borderRadius: '50%',
+                  background: 'white',
+                  position: 'absolute',
+                  top: '3px',
+                  left: darkMode ? '27px' : '3px',
+                  transition: 'all 0.3s',
+                  boxShadow: '0 2px 4px rgba(0,0,0,0.2)',
+                }} />
+              </button>
+            </div>
           </div>
 
           <div className="profile-card">
@@ -569,9 +635,9 @@ export default function ProfilePage() {
               </button>
             </form>
 
-            {/* Theme Color Section */}
+            {/* Appearance Section - Theme Color Only (Dark mode toggle is at top) */}
             <div className="theme-section">
-              <h3 className="theme-title">Theme Color</h3>
+              <h3 className="theme-title">Accent Color</h3>
               <div className="theme-colors">
                 {(Object.keys(THEME_COLORS) as ThemeColor[]).map((color) => (
                   <button
