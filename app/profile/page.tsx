@@ -22,6 +22,7 @@ export default function ProfilePage() {
   const [saving, setSaving] = useState(false);
   const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
   const [activeSection, setActiveSection] = useState<'profile' | 'security' | 'appearance'>('profile');
+  const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false);
 
   useEffect(() => {
     if (!initialized.current && user) {
@@ -95,7 +96,7 @@ export default function ProfilePage() {
   if (authLoading) {
     return (
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', minHeight: '100vh', background: isDark ? '#080c14' : '#f0f2f8' }}>
-        <div style={{ fontFamily: "'DM Sans', sans-serif", color: isDark ? '#4a5568' : '#a0aec0', fontSize: '1rem', letterSpacing: '0.1em' }}>
+        <div style={{ fontFamily: "'DM Sans', sans-serif", color: isDark ? '#4a5568' : '#a0aec0', fontSize: '1rem' }}>
           Loading...
         </div>
       </div>
@@ -107,22 +108,27 @@ export default function ProfilePage() {
   const theme = THEME_COLORS[themeColor];
 
   const navItems = [
-    { id: 'profile', label: 'Profile', icon: '◈' },
-    { id: 'security', label: 'Security', icon: '◎' },
-    { id: 'appearance', label: 'Appearance', icon: '◐' },
+    { id: 'profile',    label: 'Profile',    icon: '◈', desc: 'Name & details' },
+    { id: 'security',   label: 'Security',   icon: '◎', desc: 'Password' },
+    { id: 'appearance', label: 'Appearance', icon: '◐', desc: 'Theme & color' },
   ] as const;
 
-  // Derived dark/light tokens
-  const bg = isDark ? '#080c14' : '#f0f2f8';
-  const sidebar = isDark ? '#0d1220' : '#ffffff';
-  const panel = isDark ? '#111827' : '#ffffff';
-  const panelBorder = isDark ? '#1f2a3d' : '#e8ecf4';
-  const text = isDark ? '#e2e8f0' : '#1a202c';
-  const muted = isDark ? '#4a5878' : '#8a94a8';
-  const subtle = isDark ? '#1a2235' : '#f5f7fc';
-  const inputBorder = isDark ? '#1f2a3d' : '#dde2ef';
-  const inputBg = isDark ? '#0d1220' : '#f8f9fd';
-  const inputText = isDark ? '#c8d4e8' : '#2d3748';
+  const bg           = isDark ? '#080c14'   : '#f0f2f8';
+  const sidebar      = isDark ? '#0d1220'   : '#ffffff';
+  const panel        = isDark ? '#111827'   : '#ffffff';
+  const panelBorder  = isDark ? '#1f2a3d'   : '#e8ecf4';
+  const text         = isDark ? '#e2e8f0'   : '#1a202c';
+  const muted        = isDark ? '#4a5878'   : '#8a94a8';
+  const subtle       = isDark ? '#1a2235'   : '#f5f7fc';
+  const inputBorder  = isDark ? '#1f2a3d'   : '#dde2ef';
+  const inputBg      = isDark ? '#0d1220'   : '#f8f9fd';
+  const inputText    = isDark ? '#c8d4e8'   : '#2d3748';
+
+  const sectionTitles = {
+    profile:    { title: 'Your Profile',   sub: 'Manage your personal details' },
+    security:   { title: 'Security',       sub: 'Update your password' },
+    appearance: { title: 'Appearance',     sub: 'Customize how the app looks' },
+  };
 
   return (
     <>
@@ -133,33 +139,39 @@ export default function ProfilePage() {
 
         html, body {
           height: 100%;
+          width: 100%;
           font-family: 'DM Sans', system-ui, sans-serif;
           background: ${bg};
           color: ${text};
           transition: background 0.4s ease, color 0.4s ease;
           -webkit-font-smoothing: antialiased;
+          overflow-x: hidden;
         }
 
-        /* ── Layout Shell ── */
+        /* ───────────────────────────────────────
+           SHELL — desktop: sidebar + main side by side
+        ─────────────────────────────────────── */
         .pp-shell {
-          display: grid;
-          grid-template-columns: 260px 1fr;
-          grid-template-rows: 100vh;
+          display: flex;
           min-height: 100vh;
+          width: 100%;
           background: ${bg};
-          transition: background 0.4s;
         }
 
         /* ── Sidebar ── */
         .pp-sidebar {
+          width: 260px;
+          flex-shrink: 0;
           background: ${sidebar};
           border-right: 1px solid ${panelBorder};
           display: flex;
           flex-direction: column;
-          padding: 0;
-          overflow: hidden;
-          position: relative;
+          position: sticky;
+          top: 0;
+          height: 100vh;
+          overflow-y: auto;
           transition: background 0.4s, border-color 0.4s;
+          z-index: 20;
         }
 
         .pp-sidebar::before {
@@ -174,17 +186,17 @@ export default function ProfilePage() {
         }
 
         .pp-sidebar-top {
-          padding: 2.5rem 2rem 2rem;
+          padding: 2rem 1.5rem 1.5rem;
           border-bottom: 1px solid ${panelBorder};
           display: flex;
           align-items: center;
-          gap: 0.75rem;
+          gap: 0.625rem;
         }
 
         .pp-brand {
           font-family: 'Syne', sans-serif;
           font-weight: 700;
-          font-size: 1.1rem;
+          font-size: 1rem;
           color: ${text};
           letter-spacing: -0.01em;
         }
@@ -198,23 +210,22 @@ export default function ProfilePage() {
           box-shadow: 0 0 10px ${theme.primary}80;
         }
 
-        /* Avatar block */
+        /* Avatar */
         .pp-avatar-block {
-          padding: 2rem 2rem 1.5rem;
+          padding: 1.5rem 1.5rem 1.25rem;
           display: flex;
           flex-direction: column;
           align-items: center;
-          gap: 0.75rem;
+          gap: 0.625rem;
           border-bottom: 1px solid ${panelBorder};
         }
 
         .pp-avatar-ring {
-          width: 72px;
-          height: 72px;
+          width: 64px;
+          height: 64px;
           border-radius: 50%;
-          padding: 3px;
+          padding: 2.5px;
           background: ${theme.gradient};
-          position: relative;
         }
 
         .pp-avatar-inner {
@@ -227,51 +238,52 @@ export default function ProfilePage() {
           justify-content: center;
           font-family: 'Syne', sans-serif;
           font-weight: 800;
-          font-size: 1.5rem;
+          font-size: 1.4rem;
           color: ${theme.primary};
         }
 
         .pp-avatar-name {
           font-family: 'Syne', sans-serif;
           font-weight: 700;
-          font-size: 1rem;
+          font-size: 0.95rem;
           color: ${text};
           letter-spacing: -0.01em;
           text-align: center;
         }
 
         .pp-avatar-email {
-          font-size: 0.8rem;
+          font-size: 0.75rem;
           color: ${muted};
           font-family: 'DM Mono', monospace;
           text-align: center;
           letter-spacing: 0.01em;
+          word-break: break-all;
         }
 
         /* Nav */
         .pp-nav {
-          padding: 1.25rem 1rem;
+          padding: 1rem 0.75rem;
           flex: 1;
           display: flex;
           flex-direction: column;
-          gap: 0.25rem;
+          gap: 0.2rem;
         }
 
-        .pp-nav-label {
-          font-size: 0.7rem;
-          font-weight: 600;
-          letter-spacing: 0.12em;
+        .pp-nav-section-label {
+          font-size: 0.68rem;
+          font-weight: 700;
+          letter-spacing: 0.1em;
           text-transform: uppercase;
           color: ${muted};
           padding: 0 0.75rem;
-          margin-bottom: 0.5rem;
+          margin-bottom: 0.4rem;
         }
 
         .pp-nav-item {
           display: flex;
           align-items: center;
-          gap: 0.875rem;
-          padding: 0.75rem 1rem;
+          gap: 0.75rem;
+          padding: 0.7rem 0.875rem;
           border-radius: 12px;
           border: 1px solid transparent;
           cursor: pointer;
@@ -279,12 +291,10 @@ export default function ProfilePage() {
           text-align: left;
           width: 100%;
           font-family: 'DM Sans', sans-serif;
-          font-size: 0.925rem;
+          font-size: 0.9rem;
           font-weight: 500;
           color: ${muted};
           transition: all 0.2s ease;
-          position: relative;
-          overflow: hidden;
         }
 
         .pp-nav-item:hover {
@@ -299,8 +309,8 @@ export default function ProfilePage() {
         }
 
         .pp-nav-icon {
-          font-size: 1rem;
-          width: 20px;
+          font-size: 0.95rem;
+          width: 18px;
           text-align: center;
           flex-shrink: 0;
         }
@@ -313,22 +323,21 @@ export default function ProfilePage() {
           margin-left: auto;
           opacity: 0;
           transition: opacity 0.2s;
+          flex-shrink: 0;
         }
 
-        .pp-nav-item.active .pp-nav-pip {
-          opacity: 1;
-        }
+        .pp-nav-item.active .pp-nav-pip { opacity: 1; }
 
-        /* Sidebar bottom */
+        /* Sidebar footer */
         .pp-sidebar-footer {
-          padding: 1rem 1.25rem 1.5rem;
+          padding: 0.875rem 1rem 1.5rem;
           border-top: 1px solid ${panelBorder};
           display: flex;
           flex-direction: column;
-          gap: 0.5rem;
+          gap: 0.25rem;
         }
 
-        .pp-back-btn {
+        .pp-back-btn, .pp-logout-btn {
           display: flex;
           align-items: center;
           gap: 0.5rem;
@@ -336,7 +345,6 @@ export default function ProfilePage() {
           border-radius: 10px;
           border: none;
           background: none;
-          color: ${muted};
           font-family: 'DM Sans', sans-serif;
           font-size: 0.875rem;
           font-weight: 500;
@@ -346,51 +354,180 @@ export default function ProfilePage() {
           width: 100%;
         }
 
-        .pp-back-btn:hover {
-          background: ${subtle};
-          color: ${text};
+        .pp-back-btn { color: ${muted}; }
+        .pp-back-btn:hover { background: ${subtle}; color: ${text}; }
+
+        .pp-logout-btn { color: #f87171; }
+        .pp-logout-btn:hover { background: rgba(239,68,68,0.08); color: #ef4444; }
+
+        /* ── MOBILE TOP NAV BAR ── */
+        .pp-mobile-topnav {
+          display: none;
+          position: sticky;
+          top: 0;
+          z-index: 30;
+          background: ${sidebar};
+          border-bottom: 1px solid ${panelBorder};
+          backdrop-filter: blur(12px);
         }
 
-        .pp-logout-btn {
-          display: flex;
-          align-items: center;
-          gap: 0.5rem;
-          padding: 0.6rem 0.875rem;
-          border-radius: 10px;
-          border: none;
-          background: none;
-          color: #f87171;
-          font-family: 'DM Sans', sans-serif;
-          font-size: 0.875rem;
-          font-weight: 500;
-          cursor: pointer;
-          transition: all 0.2s;
-          text-align: left;
-          width: 100%;
-        }
-
-        .pp-logout-btn:hover {
-          background: #fef2f2;
-          color: #dc2626;
-        }
-
-        /* ── Main Panel ── */
-        .pp-main {
-          overflow-y: auto;
-          background: ${bg};
-          display: flex;
-          flex-direction: column;
-          transition: background 0.4s;
-        }
-
-        /* Top bar */
-        .pp-topbar {
-          padding: 1.75rem 3rem;
+        /* Row 1: hamburger + actions */
+        .pp-mobile-topnav-row1 {
           display: flex;
           align-items: center;
           justify-content: space-between;
+          padding: 0.75rem 1rem;
+          gap: 0.5rem;
+        }
+
+        .pp-mobile-topnav-left {
+          display: flex;
+          align-items: center;
+          gap: 0.5rem;
+        }
+
+        .pp-mobile-topnav-right {
+          display: flex;
+          align-items: center;
+          gap: 0.4rem;
+        }
+
+        .pp-mobile-brand {
+          display: flex;
+          align-items: center;
+          gap: 0.5rem;
+        }
+
+        .pp-hamburger {
+          width: 34px;
+          height: 34px;
+          border-radius: 9px;
+          border: 1px solid ${panelBorder};
+          background: ${subtle};
+          color: ${text};
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          cursor: pointer;
+          font-size: 0.9rem;
+          transition: all 0.2s;
+          flex-shrink: 0;
+        }
+
+        .pp-hamburger:hover { border-color: ${theme.primary}60; }
+
+        /* Row 2: Tab bar */
+        .pp-mobile-tabs {
+          display: flex;
+          gap: 4px;
+          padding: 0 0.75rem 0.75rem;
+          overflow-x: auto;
+          -webkit-overflow-scrolling: touch;
+          scrollbar-width: none;
+        }
+
+        .pp-mobile-tabs::-webkit-scrollbar { display: none; }
+
+        .pp-mobile-tab {
+          display: flex;
+          align-items: center;
+          gap: 0.4rem;
+          padding: 0.5rem 0.875rem;
+          border-radius: 9px;
+          border: 1px solid transparent;
+          background: transparent;
+          font-family: 'DM Sans', sans-serif;
+          font-size: 0.82rem;
+          font-weight: 600;
+          color: ${muted};
+          cursor: pointer;
+          transition: all 0.2s;
+          white-space: nowrap;
+          flex-shrink: 0;
+        }
+
+        .pp-mobile-tab.active {
+          background: ${isDark ? `${theme.primary}18` : `${theme.primary}10`};
+          border-color: ${isDark ? `${theme.primary}30` : `${theme.primary}25`};
+          color: ${theme.primary};
+        }
+
+        .pp-mobile-tab-icon {
+          font-size: 0.85rem;
+        }
+
+        /* ── Mobile drawer overlay ── */
+        .pp-drawer-overlay {
+          position: fixed;
+          inset: 0;
+          background: rgba(0,0,0,0.5);
+          backdrop-filter: blur(4px);
+          z-index: 40;
+          animation: fadeIn 0.2s ease;
+        }
+
+        .pp-drawer {
+          position: fixed;
+          top: 0;
+          left: 0;
+          bottom: 0;
+          width: 280px;
+          background: ${sidebar};
+          border-right: 1px solid ${panelBorder};
+          z-index: 50;
+          display: flex;
+          flex-direction: column;
+          animation: slideRight 0.25s ease;
+          overflow-y: auto;
+        }
+
+        @keyframes slideRight {
+          from { transform: translateX(-100%); }
+          to   { transform: translateX(0); }
+        }
+
+        @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+
+        .pp-drawer-close {
+          position: absolute;
+          top: 1rem;
+          right: 1rem;
+          width: 32px;
+          height: 32px;
+          border-radius: 8px;
+          border: 1px solid ${panelBorder};
+          background: ${subtle};
+          color: ${muted};
+          font-size: 1rem;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          cursor: pointer;
+          transition: all 0.2s;
+        }
+
+        .pp-drawer-close:hover { color: ${text}; }
+
+        /* ── Main panel ── */
+        .pp-main {
+          flex: 1;
+          min-width: 0;
+          display: flex;
+          flex-direction: column;
+          background: ${bg};
+          overflow-y: auto;
+          transition: background 0.4s;
+        }
+
+        /* Desktop topbar (hidden on mobile) */
+        .pp-topbar {
+          padding: 1rem 2rem;
+          display: flex;
+          align-items: center;
+          justify-content: space-between;
+          gap: 1rem;
           border-bottom: 1px solid ${panelBorder};
-          background: ${isDark ? 'rgba(8,12,20,0.8)' : 'rgba(240,242,248,0.8)'};
+          background: ${isDark ? 'rgba(8,12,20,0.9)' : 'rgba(240,242,248,0.9)'};
           backdrop-filter: blur(12px);
           position: sticky;
           top: 0;
@@ -400,131 +537,134 @@ export default function ProfilePage() {
 
         .pp-topbar-title {
           font-family: 'Syne', sans-serif;
-          font-size: 1.35rem;
+          font-size: 1.15rem;
           font-weight: 700;
           color: ${text};
           letter-spacing: -0.02em;
         }
 
         .pp-topbar-sub {
-          font-size: 0.85rem;
+          font-size: 0.78rem;
           color: ${muted};
           margin-top: 0.15rem;
         }
 
-        /* Dark toggle in topbar */
-        .pp-dark-toggle {
+        .pp-topbar-actions {
           display: flex;
           align-items: center;
-          gap: 0.75rem;
-          padding: 0.5rem 0.875rem;
-          background: ${panel};
-          border: 1px solid ${panelBorder};
-          border-radius: 50px;
-          cursor: pointer;
-          transition: all 0.2s;
-        }
-
-        .pp-dark-toggle:hover {
-          border-color: ${theme.primary}50;
-        }
-
-        .pp-dark-toggle-label {
-          font-size: 0.825rem;
-          font-weight: 500;
-          color: ${muted};
-        }
-
-        .pp-toggle-track {
-          width: 38px;
-          height: 22px;
-          border-radius: 11px;
-          background: ${isDark ? theme.primary : '#cbd5e1'};
-          position: relative;
-          transition: background 0.3s;
-          border: none;
-          cursor: pointer;
+          gap: 0.5rem;
           flex-shrink: 0;
         }
 
-        .pp-toggle-thumb {
-          width: 16px;
-          height: 16px;
-          border-radius: 50%;
-          background: white;
-          position: absolute;
-          top: 3px;
-          left: ${isDark ? '19px' : '3px'};
-          transition: left 0.3s;
-          box-shadow: 0 1px 4px rgba(0,0,0,0.2);
+        .pp-topbar-back {
+          display: flex;
+          align-items: center;
+          gap: 0.4rem;
+          padding: 0.5rem 0.875rem;
+          border-radius: 9px;
+          border: 1px solid ${panelBorder};
+          background: ${subtle};
+          color: ${muted};
+          font-family: 'DM Sans', sans-serif;
+          font-size: 0.8rem;
+          font-weight: 500;
+          cursor: pointer;
+          transition: all 0.2s;
+          white-space: nowrap;
         }
 
-        /* Content area */
+        .pp-topbar-back:hover {
+          background: ${isDark ? '#1f2a3d' : '#e8ecf4'};
+          color: ${text};
+          border-color: ${panelBorder};
+        }
+
+        .pp-topbar-logout {
+          display: flex;
+          align-items: center;
+          gap: 0.4rem;
+          padding: 0.5rem 0.875rem;
+          border-radius: 9px;
+          border: 1px solid rgba(239,68,68,0.25);
+          background: rgba(239,68,68,0.07);
+          color: #ef4444;
+          font-family: 'DM Sans', sans-serif;
+          font-size: 0.8rem;
+          font-weight: 600;
+          cursor: pointer;
+          transition: all 0.2s;
+          white-space: nowrap;
+        }
+
+        .pp-topbar-logout:hover {
+          background: rgba(239,68,68,0.14);
+          border-color: rgba(239,68,68,0.4);
+        }
+
+        /* Content */
         .pp-content {
-          padding: 2.5rem 3rem;
+          padding: 2rem 2.5rem;
           flex: 1;
           max-width: 680px;
+          width: 100%;
         }
 
-        /* Section card */
+        /* ── Cards ── */
         .pp-card {
           background: ${panel};
           border: 1px solid ${panelBorder};
           border-radius: 20px;
           overflow: hidden;
           transition: background 0.4s, border-color 0.4s;
+          margin-bottom: 1rem;
         }
 
+        .pp-card:last-child { margin-bottom: 0; }
+
         .pp-card-header {
-          padding: 1.75rem 2rem 1.25rem;
+          padding: 1.5rem 1.75rem 1.25rem;
           border-bottom: 1px solid ${panelBorder};
-          display: flex;
-          align-items: flex-start;
-          justify-content: space-between;
-          gap: 1rem;
         }
 
         .pp-card-title {
           font-family: 'Syne', sans-serif;
-          font-size: 1.05rem;
+          font-size: 1rem;
           font-weight: 700;
           color: ${text};
           letter-spacing: -0.01em;
         }
 
         .pp-card-desc {
-          font-size: 0.85rem;
+          font-size: 0.82rem;
           color: ${muted};
           margin-top: 0.2rem;
           line-height: 1.5;
         }
 
         .pp-card-body {
-          padding: 1.75rem 2rem;
+          padding: 1.5rem 1.75rem;
         }
 
-        /* Form */
-        .pp-field {
-          margin-bottom: 1.25rem;
-        }
+        /* ── Fields ── */
+        .pp-field { margin-bottom: 1.1rem; }
 
         .pp-label {
           display: block;
-          font-size: 0.82rem;
-          font-weight: 600;
-          letter-spacing: 0.04em;
+          font-size: 0.78rem;
+          font-weight: 700;
+          letter-spacing: 0.06em;
           text-transform: uppercase;
           color: ${muted};
-          margin-bottom: 0.5rem;
+          margin-bottom: 0.45rem;
         }
 
         .pp-input {
           width: 100%;
-          padding: 0.875rem 1rem;
+          padding: 0.825rem 1rem;
           background: ${inputBg};
           border: 1.5px solid ${inputBorder};
           border-radius: 12px;
-          font-size: 0.95rem;
+          font-size: 0.925rem;
           font-family: 'DM Sans', sans-serif;
           color: ${inputText};
           outline: none;
@@ -537,26 +677,19 @@ export default function ProfilePage() {
           background: ${isDark ? '#0d1220' : '#fff'};
         }
 
-        .pp-input:disabled {
-          opacity: 0.5;
-          cursor: not-allowed;
-        }
+        .pp-input:disabled { opacity: 0.45; cursor: not-allowed; }
 
-        .pp-input-hint {
-          margin-top: 0.4rem;
-          font-size: 0.78rem;
-          color: ${muted};
-        }
+        .pp-input-hint { margin-top: 0.35rem; font-size: 0.75rem; color: ${muted}; }
 
-        /* Message */
+        /* ── Message ── */
         .pp-message {
-          padding: 0.875rem 1rem;
-          border-radius: 12px;
-          margin-bottom: 1.5rem;
-          font-size: 0.9rem;
+          padding: 0.75rem 1rem;
+          border-radius: 10px;
+          margin-bottom: 1.25rem;
+          font-size: 0.875rem;
           display: flex;
           align-items: center;
-          gap: 0.625rem;
+          gap: 0.5rem;
         }
 
         .pp-message.success {
@@ -571,14 +704,14 @@ export default function ProfilePage() {
           color: ${isDark ? '#f87171' : '#dc2626'};
         }
 
-        /* Buttons */
+        /* ── Buttons ── */
         .pp-btn-primary {
-          padding: 0.875rem 2rem;
+          padding: 0.825rem 1.75rem;
           background: ${theme.gradient};
           color: white;
           border: none;
           border-radius: 12px;
-          font-size: 0.925rem;
+          font-size: 0.9rem;
           font-weight: 600;
           font-family: 'DM Sans', sans-serif;
           cursor: pointer;
@@ -592,11 +725,7 @@ export default function ProfilePage() {
           box-shadow: 0 8px 24px ${theme.primary}40;
         }
 
-        .pp-btn-primary:disabled {
-          opacity: 0.5;
-          cursor: not-allowed;
-          transform: none;
-        }
+        .pp-btn-primary:disabled { opacity: 0.5; cursor: not-allowed; transform: none; }
 
         .pp-btn-ghost {
           padding: 0.75rem 1.25rem;
@@ -617,31 +746,15 @@ export default function ProfilePage() {
           background: ${isDark ? `${theme.primary}10` : `${theme.primary}08`};
         }
 
-        .pp-btn-link {
-          background: none;
-          border: none;
-          color: ${theme.primary};
-          font-size: 0.875rem;
-          font-weight: 600;
-          font-family: 'DM Sans', sans-serif;
-          cursor: pointer;
-          padding: 0;
-          transition: opacity 0.2s;
-        }
-
-        .pp-btn-link:hover { opacity: 0.75; }
-
-        /* Row layout helpers */
         .pp-row {
           display: flex;
           align-items: center;
           justify-content: space-between;
-          gap: 1rem;
+          gap: 0.75rem;
+          flex-wrap: wrap;
         }
 
-        .pp-spacer { flex: 1; }
-
-        /* Theme colors */
+        /* ── Theme colors ── */
         .pp-colors {
           display: flex;
           gap: 10px;
@@ -650,8 +763,8 @@ export default function ProfilePage() {
         }
 
         .pp-color-swatch {
-          width: 36px;
-          height: 36px;
+          width: 34px;
+          height: 34px;
           border-radius: 10px;
           border: 2.5px solid transparent;
           cursor: pointer;
@@ -659,7 +772,7 @@ export default function ProfilePage() {
           position: relative;
         }
 
-        .pp-color-swatch:hover { transform: scale(1.12); }
+        .pp-color-swatch:hover { transform: scale(1.1); }
 
         .pp-color-swatch.active {
           border-color: ${isDark ? '#fff' : '#1a202c'};
@@ -672,7 +785,7 @@ export default function ProfilePage() {
           display: flex;
           align-items: center;
           justify-content: center;
-          font-size: 0.8rem;
+          font-size: 0.75rem;
           color: white;
           opacity: 0;
           transition: opacity 0.2s;
@@ -680,7 +793,7 @@ export default function ProfilePage() {
 
         .pp-color-swatch.active .pp-color-check { opacity: 1; }
 
-        /* Appearance big cards */
+        /* ── Appearance mode cards ── */
         .pp-appearance-grid {
           display: grid;
           grid-template-columns: 1fr 1fr;
@@ -689,7 +802,7 @@ export default function ProfilePage() {
         }
 
         .pp-mode-card {
-          padding: 1.25rem;
+          padding: 1.1rem;
           border-radius: 14px;
           border: 2px solid ${inputBorder};
           cursor: pointer;
@@ -708,7 +821,7 @@ export default function ProfilePage() {
         }
 
         .pp-mode-preview {
-          height: 52px;
+          height: 44px;
           border-radius: 8px;
           overflow: hidden;
           display: flex;
@@ -721,13 +834,13 @@ export default function ProfilePage() {
 
         .pp-mode-preview-bar {
           flex: 1;
-          border-radius: 4px;
+          border-radius: 3px;
           background: currentColor;
           opacity: 0.15;
         }
 
         .pp-mode-label {
-          font-size: 0.875rem;
+          font-size: 0.84rem;
           font-weight: 600;
           color: ${text};
           display: flex;
@@ -743,22 +856,16 @@ export default function ProfilePage() {
           display: flex;
           align-items: center;
           justify-content: center;
-          font-size: 0.55rem;
+          font-size: 0.5rem;
           color: white;
           opacity: 0;
           transition: opacity 0.2s;
+          flex-shrink: 0;
         }
 
         .pp-mode-card.active .pp-mode-check { opacity: 1; }
 
-        /* Divider */
-        .pp-divider {
-          height: 1px;
-          background: ${panelBorder};
-          margin: 1.5rem 0;
-        }
-
-        /* Security section toggle */
+        /* ── Password toggle ── */
         .pp-password-toggle {
           padding: 1rem;
           border-radius: 12px;
@@ -773,9 +880,9 @@ export default function ProfilePage() {
           text-align: left;
           font-family: 'DM Sans', sans-serif;
           color: ${muted};
-          font-size: 0.9rem;
+          font-size: 0.875rem;
           font-weight: 500;
-          margin-bottom: 1.25rem;
+          margin-bottom: 1rem;
         }
 
         .pp-password-toggle:hover {
@@ -785,19 +892,18 @@ export default function ProfilePage() {
         }
 
         .pp-password-toggle-icon {
-          width: 32px;
-          height: 32px;
+          width: 30px;
+          height: 30px;
           border-radius: 8px;
           background: ${isDark ? '#1a2235' : '#f0f2f8'};
           display: flex;
           align-items: center;
           justify-content: center;
-          font-size: 0.9rem;
+          font-size: 0.85rem;
           flex-shrink: 0;
-          transition: background 0.2s;
         }
 
-        /* Modal */
+        /* ── Modal ── */
         .pp-modal-overlay {
           position: fixed;
           inset: 0;
@@ -811,63 +917,59 @@ export default function ProfilePage() {
           animation: fadeIn 0.15s ease;
         }
 
-        @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
-
         .pp-modal {
           background: ${panel};
           border: 1px solid ${panelBorder};
           border-radius: 24px;
-          padding: 2.5rem;
-          max-width: 380px;
+          padding: 2rem;
+          max-width: 360px;
           width: 100%;
           box-shadow: 0 24px 80px rgba(0,0,0,0.3);
           animation: slideUp 0.2s ease;
         }
 
-        @keyframes slideUp { from { transform: translateY(8px); opacity: 0; } to { transform: none; opacity: 1; } }
+        @keyframes slideUp {
+          from { transform: translateY(8px); opacity: 0; }
+          to   { transform: none; opacity: 1; }
+        }
 
         .pp-modal-icon {
-          width: 48px;
-          height: 48px;
-          border-radius: 14px;
-          background: #fef2f2;
+          width: 44px;
+          height: 44px;
+          border-radius: 12px;
+          background: rgba(239,68,68,0.1);
           display: flex;
           align-items: center;
           justify-content: center;
-          font-size: 1.25rem;
-          margin-bottom: 1.25rem;
+          font-size: 1.1rem;
+          margin-bottom: 1rem;
         }
 
         .pp-modal-title {
           font-family: 'Syne', sans-serif;
-          font-size: 1.2rem;
+          font-size: 1.1rem;
           font-weight: 700;
           color: ${text};
-          margin-bottom: 0.5rem;
-          letter-spacing: -0.01em;
+          margin-bottom: 0.4rem;
         }
 
         .pp-modal-body {
-          font-size: 0.9rem;
+          font-size: 0.875rem;
           color: ${muted};
           line-height: 1.6;
-          margin-bottom: 1.75rem;
+          margin-bottom: 1.5rem;
         }
 
-        .pp-modal-actions {
-          display: flex;
-          gap: 0.75rem;
-        }
-
+        .pp-modal-actions { display: flex; gap: 0.75rem; }
         .pp-modal-actions > * { flex: 1; }
 
         .pp-btn-cancel {
-          padding: 0.875rem 1rem;
+          padding: 0.825rem 1rem;
           background: ${subtle};
           border: 1px solid ${inputBorder};
           border-radius: 12px;
           color: ${muted};
-          font-size: 0.9rem;
+          font-size: 0.875rem;
           font-weight: 500;
           font-family: 'DM Sans', sans-serif;
           cursor: pointer;
@@ -877,12 +979,12 @@ export default function ProfilePage() {
         .pp-btn-cancel:hover { background: ${isDark ? '#1f2a3d' : '#e8ecf4'}; }
 
         .pp-btn-danger {
-          padding: 0.875rem 1rem;
+          padding: 0.825rem 1rem;
           background: #dc2626;
           border: none;
           border-radius: 12px;
           color: white;
-          font-size: 0.9rem;
+          font-size: 0.875rem;
           font-weight: 600;
           font-family: 'DM Sans', sans-serif;
           cursor: pointer;
@@ -890,62 +992,92 @@ export default function ProfilePage() {
           box-shadow: 0 4px 14px rgba(220,38,38,0.3);
         }
 
-        .pp-btn-danger:hover {
-          background: #b91c1c;
-          transform: translateY(-1px);
-          box-shadow: 0 6px 20px rgba(220,38,38,0.4);
+        .pp-btn-danger:hover { background: #b91c1c; transform: translateY(-1px); }
+
+        /* ──────────────────────────────────────
+           RESPONSIVE
+        ────────────────────────────────────── */
+
+        /* Tablet: shrink sidebar */
+        @media (max-width: 900px) and (min-width: 769px) {
+          .pp-sidebar { width: 220px; }
+          .pp-content { padding: 1.5rem 2rem; }
+          .pp-topbar  { padding: 1.25rem 2rem; }
         }
 
-        /* Mobile */
+        /* Mobile: hide sidebar, show mobile nav */
         @media (max-width: 768px) {
-          .pp-shell {
-            grid-template-columns: 1fr;
-            grid-template-rows: auto 1fr;
+          .pp-sidebar       { display: none; }
+          .pp-mobile-topnav { display: block; }
+
+          .pp-topbar { display: none; }
+
+          .pp-content {
+            padding: 1.25rem 1rem;
+            max-width: 100%;
           }
 
-          .pp-sidebar {
-            flex-direction: row;
-            border-right: none;
-            border-bottom: 1px solid ${panelBorder};
-            overflow-x: auto;
-            padding: 0;
-          }
-
-          .pp-sidebar::before { display: none; }
-          .pp-sidebar-top { display: none; }
-          .pp-avatar-block { display: none; }
-          .pp-sidebar-footer { display: none; }
-
-          .pp-nav {
-            flex-direction: row;
-            padding: 0.5rem;
-            gap: 0.25rem;
-            overflow-x: auto;
-          }
-
-          .pp-nav-label { display: none; }
-
-          .pp-nav-item {
-            flex-shrink: 0;
-            padding: 0.6rem 1rem;
-            white-space: nowrap;
-          }
-
-          .pp-topbar { padding: 1rem 1.25rem; }
-          .pp-content { padding: 1.25rem; }
-          .pp-card-body { padding: 1.25rem; }
           .pp-card-header { padding: 1.25rem; }
-          .pp-appearance-grid { grid-template-columns: 1fr; }
+          .pp-card-body   { padding: 1.25rem; }
+
+          .pp-appearance-grid { grid-template-columns: 1fr 1fr; }
+
+          .pp-row { flex-direction: row; justify-content: space-between; }
+        }
+
+        @media (max-width: 420px) {
+          .pp-content { padding: 1rem 0.875rem; }
+          .pp-appearance-grid { grid-template-columns: 1fr 1fr; }
+          .pp-btn-primary { padding: 0.75rem 1.25rem; font-size: 0.875rem; }
         }
       `}</style>
 
+      {/* Mobile drawer */}
+      {mobileSidebarOpen && (
+        <div className="pp-drawer-overlay" onClick={() => setMobileSidebarOpen(false)}>
+          <div className="pp-drawer" onClick={e => e.stopPropagation()}>
+            <button className="pp-drawer-close" onClick={() => setMobileSidebarOpen(false)}>✕</button>
+
+            <div className="pp-sidebar-top" style={{ paddingTop: '3rem' }}>
+              <div className="pp-brand-dot" />
+              <span className="pp-brand">My Account</span>
+            </div>
+
+            <div className="pp-avatar-block">
+              <div className="pp-avatar-ring">
+                <div className="pp-avatar-inner">{user.name.charAt(0).toUpperCase()}</div>
+              </div>
+              <div className="pp-avatar-name">{user.name}</div>
+              <div className="pp-avatar-email">{user.email}</div>
+            </div>
+
+            <nav className="pp-nav">
+              <div className="pp-nav-section-label">Settings</div>
+              {navItems.map(item => (
+                <button
+                  key={item.id}
+                  className={`pp-nav-item ${activeSection === item.id ? 'active' : ''}`}
+                  onClick={() => { setActiveSection(item.id); setMobileSidebarOpen(false); }}
+                >
+                  <span className="pp-nav-icon">{item.icon}</span>
+                  {item.label}
+                  <span className="pp-nav-pip" />
+                </button>
+              ))}
+            </nav>
+
+            <div className="pp-sidebar-footer">
+              <button className="pp-back-btn" onClick={() => router.push('/')}>← Back to Todos</button>
+              <button className="pp-logout-btn" onClick={() => { setMobileSidebarOpen(false); setShowLogoutConfirm(true); }}>↑ Logout</button>
+            </div>
+          </div>
+        </div>
+      )}
+
       <div className="pp-shell">
-        
-        {/* ── Sidebar ── */}
+
+        {/* ── Desktop Sidebar ── */}
         <aside className="pp-sidebar">
-           <button className="pp-back-btn" onClick={() => router.push('/')}>
-              ← Back to Todos
-            </button>
           <div className="pp-sidebar-top">
             <div className="pp-brand-dot" />
             <span className="pp-brand">My Account</span>
@@ -953,18 +1085,14 @@ export default function ProfilePage() {
 
           <div className="pp-avatar-block">
             <div className="pp-avatar-ring">
-              <div className="pp-avatar-inner">
-                {user.name.charAt(0).toUpperCase()}
-              </div>
+              <div className="pp-avatar-inner">{user.name.charAt(0).toUpperCase()}</div>
             </div>
-            <div>
-              <div className="pp-avatar-name">{user.name}</div>
-              <div className="pp-avatar-email">{user.email}</div>
-            </div>
+            <div className="pp-avatar-name">{user.name}</div>
+            <div className="pp-avatar-email">{user.email}</div>
           </div>
 
           <nav className="pp-nav">
-            <div className="pp-nav-label">Settings</div>
+            <div className="pp-nav-section-label">Settings</div>
             {navItems.map(item => (
               <button
                 key={item.id}
@@ -979,40 +1107,66 @@ export default function ProfilePage() {
           </nav>
 
           <div className="pp-sidebar-footer">
-           
-            <button className="pp-logout-btn" onClick={() => setShowLogoutConfirm(true)}>
-              ↑ Logout
-            </button>
+            <button className="pp-back-btn" onClick={() => router.push('/')}>← Back to Todos</button>
+            <button className="pp-logout-btn" onClick={() => setShowLogoutConfirm(true)}>↑ Logout</button>
           </div>
         </aside>
 
         {/* ── Main ── */}
         <main className="pp-main">
-          {/* Top bar */}
-          <div className="pp-topbar">
-            <div>
-              <div className="pp-topbar-title">
-                {activeSection === 'profile' ? 'Your Profile' : activeSection === 'security' ? 'Security' : 'Appearance'}
+
+          {/* Mobile top nav */}
+          <div className="pp-mobile-topnav">
+            <div className="pp-mobile-topnav-row1">
+              <div className="pp-mobile-topnav-left">
+                <button className="pp-hamburger" onClick={() => setMobileSidebarOpen(true)} aria-label="Open menu">
+                  ☰
+                </button>
+                <div className="pp-mobile-brand">
+                  <div className="pp-brand-dot" />
+                  <span className="pp-brand">My Account</span>
+                </div>
               </div>
-              <div className="pp-topbar-sub">
-                {activeSection === 'profile' ? 'Manage your personal details' : activeSection === 'security' ? 'Update your password' : 'Customize how the app looks'}
+              <div className="pp-mobile-topnav-right">
+                <button className="pp-topbar-back" onClick={() => router.push('/')}>dashboard</button>
+                <button className="pp-topbar-logout" onClick={() => setShowLogoutConfirm(true)}>Logout</button>
               </div>
             </div>
+            <div className="pp-mobile-tabs">
+              {navItems.map(item => (
+                <button
+                  key={item.id}
+                  className={`pp-mobile-tab ${activeSection === item.id ? 'active' : ''}`}
+                  onClick={() => setActiveSection(item.id)}
+                >
+                  <span className="pp-mobile-tab-icon">{item.icon}</span>
+                  {item.label}
+                </button>
+              ))}
+            </div>
+          </div>
 
-       
+          {/* Desktop topbar */}
+          <div className="pp-topbar">
+            <div>
+              <div className="pp-topbar-title">{sectionTitles[activeSection].title}</div>
+              <div className="pp-topbar-sub">{sectionTitles[activeSection].sub}</div>
+            </div>
+            <div className="pp-topbar-actions">
+              <button className="pp-topbar-back" onClick={() => router.push('/')}>← Back to Todos</button>
+              <button className="pp-topbar-logout" onClick={() => setShowLogoutConfirm(true)}>Logout</button>
+            </div>
           </div>
 
           {/* Content */}
           <div className="pp-content">
 
-            {/* ── PROFILE SECTION ── */}
+            {/* ── PROFILE ── */}
             {activeSection === 'profile' && (
               <div className="pp-card">
                 <div className="pp-card-header">
-                  <div>
-                    <div className="pp-card-title">Personal Information</div>
-                    <div className="pp-card-desc">Update your display name and account details.</div>
-                  </div>
+                  <div className="pp-card-title">Personal Information</div>
+                  <div className="pp-card-desc">Update your display name and account details.</div>
                 </div>
                 <div className="pp-card-body">
                   {message && (
@@ -1032,19 +1186,12 @@ export default function ProfilePage() {
                         placeholder="Your display name"
                       />
                     </div>
-
                     <div className="pp-field">
                       <label className="pp-label">Email Address</label>
-                      <input
-                        type="email"
-                        value={email}
-                        disabled
-                        className="pp-input"
-                      />
+                      <input type="email" value={email} disabled className="pp-input" />
                       <div className="pp-input-hint">Email address cannot be changed.</div>
                     </div>
-
-                    <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: '0.5rem' }}>
+                    <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: '0.25rem' }}>
                       <button type="submit" className="pp-btn-primary" disabled={saving}>
                         {saving ? 'Saving…' : 'Save Changes'}
                       </button>
@@ -1054,14 +1201,12 @@ export default function ProfilePage() {
               </div>
             )}
 
-            {/* ── SECURITY SECTION ── */}
+            {/* ── SECURITY ── */}
             {activeSection === 'security' && (
               <div className="pp-card">
                 <div className="pp-card-header">
-                  <div>
-                    <div className="pp-card-title">Password</div>
-                    <div className="pp-card-desc">Choose a strong password to protect your account.</div>
-                  </div>
+                  <div className="pp-card-title">Password</div>
+                  <div className="pp-card-desc">Choose a strong password to protect your account.</div>
                 </div>
                 <div className="pp-card-body">
                   {message && (
@@ -1070,64 +1215,31 @@ export default function ProfilePage() {
                       {message.text}
                     </div>
                   )}
-
                   {!showPasswordSection ? (
-                    <button
-                      type="button"
-                      className="pp-password-toggle"
-                      onClick={() => setShowPasswordSection(true)}
-                    >
+                    <button type="button" className="pp-password-toggle" onClick={() => setShowPasswordSection(true)}>
                       <div className="pp-password-toggle-icon">🔑</div>
                       <div>
-                        <div style={{ color: isDark ? '#c8d4e8' : '#2d3748', fontWeight: 600, fontSize: '0.9rem' }}>Change Password</div>
-                        <div style={{ fontSize: '0.8rem', marginTop: '0.1rem' }}>Click to update your password</div>
+                        <div style={{ color: isDark ? '#c8d4e8' : '#2d3748', fontWeight: 600, fontSize: '0.875rem' }}>Change Password</div>
+                        <div style={{ fontSize: '0.78rem', marginTop: '0.1rem' }}>Click to update your password</div>
                       </div>
-                      <span style={{ marginLeft: 'auto', fontSize: '1.1rem' }}>→</span>
+                      <span style={{ marginLeft: 'auto', fontSize: '1rem' }}>→</span>
                     </button>
                   ) : (
                     <form onSubmit={handleSave}>
                       <div className="pp-field">
                         <label className="pp-label">Current Password</label>
-                        <input
-                          type="password"
-                          value={currentPassword}
-                          onChange={e => setCurrentPassword(e.target.value)}
-                          className="pp-input"
-                          placeholder="Enter current password"
-                        />
+                        <input type="password" value={currentPassword} onChange={e => setCurrentPassword(e.target.value)} className="pp-input" placeholder="Enter current password" />
                       </div>
-
                       <div className="pp-field">
                         <label className="pp-label">New Password</label>
-                        <input
-                          type="password"
-                          value={newPassword}
-                          onChange={e => setNewPassword(e.target.value)}
-                          className="pp-input"
-                          placeholder="At least 6 characters"
-                        />
+                        <input type="password" value={newPassword} onChange={e => setNewPassword(e.target.value)} className="pp-input" placeholder="At least 6 characters" />
                       </div>
-
                       <div className="pp-field">
                         <label className="pp-label">Confirm New Password</label>
-                        <input
-                          type="password"
-                          value={confirmPassword}
-                          onChange={e => setConfirmPassword(e.target.value)}
-                          className="pp-input"
-                          placeholder="Repeat new password"
-                        />
+                        <input type="password" value={confirmPassword} onChange={e => setConfirmPassword(e.target.value)} className="pp-input" placeholder="Repeat new password" />
                       </div>
-
-                      <div className="pp-row" style={{ marginTop: '0.5rem' }}>
-                        <button
-                          type="button"
-                          className="pp-btn-ghost"
-                          onClick={() => {
-                            setShowPasswordSection(false);
-                            setCurrentPassword(""); setNewPassword(""); setConfirmPassword("");
-                          }}
-                        >
+                      <div className="pp-row" style={{ marginTop: '0.25rem' }}>
+                        <button type="button" className="pp-btn-ghost" onClick={() => { setShowPasswordSection(false); setCurrentPassword(""); setNewPassword(""); setConfirmPassword(""); }}>
                           Cancel
                         </button>
                         <button type="submit" className="pp-btn-primary" disabled={saving}>
@@ -1140,23 +1252,17 @@ export default function ProfilePage() {
               </div>
             )}
 
-            {/* ── APPEARANCE SECTION ── */}
+            {/* ── APPEARANCE ── */}
             {activeSection === 'appearance' && (
               <>
-                <div className="pp-card" style={{ marginBottom: '1rem' }}>
+                <div className="pp-card">
                   <div className="pp-card-header">
-                    <div>
-                      <div className="pp-card-title">Interface Mode</div>
-                      <div className="pp-card-desc">Switch between light and dark themes.</div>
-                    </div>
+                    <div className="pp-card-title">Interface Mode</div>
+                    <div className="pp-card-desc">Switch between light and dark themes.</div>
                   </div>
                   <div className="pp-card-body">
                     <div className="pp-appearance-grid">
-                      {/* Light */}
-                      <div
-                        className={`pp-mode-card ${!isDark ? 'active' : ''}`}
-                        onClick={() => isDark && toggleDarkMode()}
-                      >
+                      <div className={`pp-mode-card ${!isDark ? 'active' : ''}`} onClick={() => isDark && toggleDarkMode()}>
                         <div className="pp-mode-preview light">
                           <div className="pp-mode-preview-bar" style={{ color: '#1a202c' }} />
                           <div className="pp-mode-preview-bar" style={{ color: '#1a202c', opacity: 0.08 }} />
@@ -1167,11 +1273,7 @@ export default function ProfilePage() {
                           <div className="pp-mode-check">✓</div>
                         </div>
                       </div>
-                      {/* Dark */}
-                      <div
-                        className={`pp-mode-card ${isDark ? 'active' : ''}`}
-                        onClick={() => !isDark && toggleDarkMode()}
-                      >
+                      <div className={`pp-mode-card ${isDark ? 'active' : ''}`} onClick={() => !isDark && toggleDarkMode()}>
                         <div className="pp-mode-preview dark">
                           <div className="pp-mode-preview-bar" style={{ color: '#e2e8f0' }} />
                           <div className="pp-mode-preview-bar" style={{ color: '#e2e8f0', opacity: 0.08 }} />
@@ -1188,10 +1290,8 @@ export default function ProfilePage() {
 
                 <div className="pp-card">
                   <div className="pp-card-header">
-                    <div>
-                      <div className="pp-card-title">Accent Color</div>
-                      <div className="pp-card-desc">Choose the color used for buttons and highlights.</div>
-                    </div>
+                    <div className="pp-card-title">Accent Color</div>
+                    <div className="pp-card-desc">Choose the color used for buttons and highlights.</div>
                   </div>
                   <div className="pp-card-body">
                     <div className="pp-colors">
@@ -1216,7 +1316,7 @@ export default function ProfilePage() {
         </main>
       </div>
 
-      {/* ── Logout Modal ── */}
+      {/* Logout Modal */}
       {showLogoutConfirm && (
         <div className="pp-modal-overlay" onClick={() => setShowLogoutConfirm(false)}>
           <div className="pp-modal" onClick={e => e.stopPropagation()}>
@@ -1226,12 +1326,8 @@ export default function ProfilePage() {
               You&apos;ll be redirected to the login page. Any unsaved changes will be lost.
             </div>
             <div className="pp-modal-actions">
-              <button className="pp-btn-cancel" onClick={() => setShowLogoutConfirm(false)}>
-                Stay
-              </button>
-              <button className="pp-btn-danger" onClick={handleLogout}>
-                Log out
-              </button>
+              <button className="pp-btn-cancel" onClick={() => setShowLogoutConfirm(false)}>Stay</button>
+              <button className="pp-btn-danger" onClick={handleLogout}>Log out</button>
             </div>
           </div>
         </div>

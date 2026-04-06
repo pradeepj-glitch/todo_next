@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
-import { verifyToken, getTokenFromRequest, hashPassword } from "../../../../lib/auth";
-import { findUserById, users } from "../../../../lib/db";
+import { verifyToken, getTokenFromRequest, hashPassword, verifyPassword } from "../../../../lib/auth";
+import { findUserById, updateUser, findUserByEmail } from "../../../../lib/db";
 
 // GET current user profile
 export async function GET(req: NextRequest) {
@@ -23,7 +23,7 @@ export async function GET(req: NextRequest) {
       );
     }
 
-    const user = findUserById(payload.userId);
+    const user = await findUserById(payload.userId);
     
     if (!user) {
       return NextResponse.json(
@@ -36,7 +36,7 @@ export async function GET(req: NextRequest) {
     return NextResponse.json(
       {
         user: {
-          id: user.id,
+          id: user._id,
           email: user.email,
           name: user.name,
           createdAt: user.createdAt,
@@ -74,9 +74,9 @@ export async function PUT(req: NextRequest) {
       );
     }
 
-    const userIndex = users.findIndex(u => u.id === payload.userId);
+    const user = await findUserById(payload.userId);
     
-    if (userIndex === -1) {
+    if (!user) {
       return NextResponse.json(
         { error: "User not found" },
         { status: 404 }
@@ -88,20 +88,20 @@ export async function PUT(req: NextRequest) {
 
     // Update name
     if (name !== undefined && name.trim()) {
-      users[userIndex].name = name.trim();
+      await updateUser(user._id, { name: name.trim() });
     }
 
     // Update email
     if (email !== undefined && email.trim()) {
       // Check if email is already taken by another user
-      const existingUser = users.find(u => u.email === email.trim() && u.id !== payload.userId);
-      if (existingUser) {
+      const existingUser = await findUserByEmail(email.trim());
+      if (existingUser && existingUser._id !== payload.userId) {
         return NextResponse.json(
           { error: "Email already in use" },
           { status: 409 }
         );
       }
-      users[userIndex].email = email.trim();
+      await updateUser(user._id, { email: email.trim() });
     }
 
     // Update password
@@ -113,9 +113,8 @@ export async function PUT(req: NextRequest) {
         );
       }
 
-      // Verify current password (we need to import verifyPassword)
-      const bcrypt = await import("bcryptjs");
-      const isValid = await bcrypt.compare(currentPassword, users[userIndex].password);
+      // Verify current password
+      const isValid = await verifyPassword(currentPassword, user.password);
       
       if (!isValid) {
         return NextResponse.json(
@@ -131,17 +130,28 @@ export async function PUT(req: NextRequest) {
         );
       }
 
-      users[userIndex].password = await hashPassword(newPassword);
+      const hashedPassword = await hashPassword(newPassword);
+      await updateUser(user._id, { password: hashedPassword });
+    }
+
+    // Get updated user
+    const updatedUser = await findUserById(payload.userId);
+    
+    if (!updatedUser) {
+      return NextResponse.json(
+        { error: "User not found after update" },
+        { status: 404 }
+      );
     }
 
     return NextResponse.json(
       {
         message: "Profile updated successfully",
         user: {
-          id: users[userIndex].id,
-          email: users[userIndex].email,
-          name: users[userIndex].name,
-          createdAt: users[userIndex].createdAt,
+          id: updatedUser._id,
+          email: updatedUser.email,
+          name: updatedUser.name,
+          createdAt: updatedUser.createdAt,
         },
       },
       { status: 200 }

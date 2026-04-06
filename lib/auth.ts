@@ -4,7 +4,7 @@ import bcrypt from 'bcryptjs';
 const JWT_SECRET = process.env.JWT_SECRET || 'your-secret-key-change-in-production';
 
 export interface User {
-  id: number;
+  _id: number;
   email: string;
   password: string;
   name: string;
@@ -14,6 +14,14 @@ export interface User {
 export interface JWTPayload {
   userId: number;
   email: string;
+}
+
+// User type without password for safe return to client
+export interface SafeUser {
+  _id: number;
+  email: string;
+  name: string;
+  createdAt: string;
 }
 
 export async function hashPassword(password: string): Promise<string> {

@@ -16,21 +16,22 @@ interface Todo {
   createdAt: string;
 }
 
-const PRIORITY_CONFIG: Record<Priority, { 
-  label: string; 
-  color: string; 
-  bg: string; 
+const PRIORITY_CONFIG: Record<Priority, {
+  label: string;
+  color: string;
+  bg: string;
   border: string;
+  glow: string;
 }> = {
-  low:    { label: "Low",    color: "#16a34a", bg: "#f0fdf4", border: "#86efac" },
-  medium: { label: "Medium", color: "#ca8a04", bg: "#fefce8", border: "#fde047" },
-  high:   { label: "High",   color: "#dc2626", bg: "#fef2f2", border: "#f87171" },
+  low:    { label: "Low",    color: "#22c55e", bg: "rgba(34,197,94,0.08)",   border: "rgba(34,197,94,0.3)",  glow: "rgba(34,197,94,0.2)"  },
+  medium: { label: "Medium", color: "#f59e0b", bg: "rgba(245,158,11,0.08)",  border: "rgba(245,158,11,0.3)", glow: "rgba(245,158,11,0.2)" },
+  high:   { label: "High",   color: "#ef4444", bg: "rgba(239,68,68,0.08)",   border: "rgba(239,68,68,0.3)",  glow: "rgba(239,68,68,0.2)"  },
 };
 
 export default function Home() {
   const { user, loading: authLoading, logout, themeColor, darkMode } = useAuth();
   const router = useRouter();
-  
+
   const [todos, setTodos] = useState<Todo[]>([]);
   const [text, setText] = useState("");
   const [priority, setPriority] = useState<Priority>("medium");
@@ -43,24 +44,28 @@ export default function Home() {
 
   const inputRef = useRef<HTMLInputElement>(null);
 
-  // Get theme config
   const theme = THEME_COLORS[themeColor];
-
-  // Dark mode colors
   const isDark = darkMode;
-  const bgColor = isDark ? '#0f172a' : '#f8fafc';
-  const cardBg = isDark ? '#1e293b' : 'white';
-  const textColor = isDark ? '#e2e8f0' : '#1e2937';
-  const borderColor = isDark ? '#334155' : '#f1f5f9';
-  const inputBg = isDark ? '#334155' : '#f8fafc';
-  const mutedColor = isDark ? '#94a3b8' : '#64748b';
-  const headingColor = isDark ? '#f1f5f9' : '#0f172a';
 
-  // Redirect to login if not authenticated
+  // Refined color system
+  const colors = {
+    bg:           isDark ? "#070b12"   : "#f4f6fb",
+    surface:      isDark ? "#0d1420"   : "#ffffff",
+    surfaceHover: isDark ? "#111827"   : "#f9faff",
+    border:       isDark ? "rgba(255,255,255,0.06)" : "rgba(0,0,0,0.07)",
+    borderHover:  isDark ? "rgba(255,255,255,0.12)" : "rgba(0,0,0,0.14)",
+    text:         isDark ? "#e8edf5"   : "#111827",
+    textMuted:    isDark ? "#5a6a82"   : "#8a94a6",
+    textSub:      isDark ? "#3d4f68"   : "#bcc4d0",
+    input:        isDark ? "#0d1420"   : "#f4f6fb",
+    inputBorder:  isDark ? "rgba(255,255,255,0.08)" : "rgba(0,0,0,0.09)",
+    heading:      isDark ? "#f0f4ff"   : "#0a0f1e",
+    accent:       theme.primary || "#6366f1",
+    shimmer:      isDark ? "rgba(255,255,255,0.03)" : "rgba(255,255,255,0.7)",
+  };
+
   useEffect(() => {
-    if (!authLoading && !user) {
-      router.push("/login");
-    }
+    if (!authLoading && !user) router.push("/login");
   }, [user, authLoading, router]);
 
   const handleLogout = async () => {
@@ -79,9 +84,7 @@ export default function Home() {
     setLoading(false);
   };
 
-  useEffect(() => {
-    fetchTodos();
-  }, []);
+  useEffect(() => { fetchTodos(); }, []);
 
   const addTodo = async () => {
     if (!text.trim()) return;
@@ -140,597 +143,954 @@ export default function Home() {
     return true;
   });
 
-  const activeCount = todos.filter(t => !t.completed).length;
-  const completedCount = todos.filter(t => t.completed).length;
-  const totalCount = todos.length;
+  const activeCount    = todos.filter(t => !t.completed).length;
+  const completedCount = todos.filter(t =>  t.completed).length;
+  const totalCount     = todos.length;
+  const completionPct  = totalCount > 0 ? Math.round((completedCount / totalCount) * 100) : 0;
 
   return (
     <>
       <style jsx global>{`
-        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Space+Grotesk:wght@500;600;700&display=swap');
+        @import url('https://fonts.googleapis.com/css2?family=Syne:wght@400;500;600;700;800&family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,600;1,9..40,300&display=swap');
 
-        * { box-sizing: border-box; margin: 0; padding: 0; }
+        *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+        :root {
+          --accent: ${colors.accent};
+          --accent-dim: ${colors.accent}22;
+          --accent-mid: ${colors.accent}55;
+        }
+
+        html, body {
+          width: 100%;
+          height: 100%;
+          overflow-x: hidden;
+        }
 
         body {
-          font-family: 'Inter', system_ui, sans-serif;
-          background: ${bgColor};
-          color: ${textColor};
+          font-family: 'DM Sans', system-ui, sans-serif;
+          background: ${colors.bg};
+          color: ${colors.text};
           min-height: 100vh;
-          transition: background 0.3s, color 0.3s;
+          transition: background 0.4s, color 0.4s;
+          -webkit-font-smoothing: antialiased;
         }
 
-        .dashboard {
+        /* ─── LAYOUT ─────────────────────────────────────────── */
+        .page-wrap {
+          width: 100%;
           min-height: 100vh;
-          padding: 2rem 10%;
-          background: ${bgColor};
-          transition: background 0.3s;
+          display: flex;
+          flex-direction: column;
+          background: ${colors.bg};
         }
 
-        .container {
-          max-width: 1200px;
+        /* Mesh background glow */
+        .page-wrap::before {
+          content: '';
+          position: fixed;
+          inset: 0;
+          background:
+            radial-gradient(ellipse 60% 40% at 20% 10%, ${colors.accent}12 0%, transparent 60%),
+            radial-gradient(ellipse 50% 50% at 80% 90%, ${colors.accent}08 0%, transparent 60%);
+          pointer-events: none;
+          z-index: 0;
+        }
+
+        .page-inner {
+          position: relative;
+          z-index: 1;
+          width: 100%;
+          max-width: 1440px;
           margin: 0 auto;
+          padding: 0 1.5rem;
+          display: flex;
+          flex-direction: column;
+          min-height: 100vh;
         }
 
-        .header {
+        /* ─── TOPBAR ──────────────────────────────────────────── */
+        .topbar {
+          width: 100%;
           display: flex;
-          justify-content: space-between;
           align-items: center;
-          margin-bottom: 3rem;
+          justify-content: space-between;
+          padding: 1.25rem 0;
+          border-bottom: 1px solid ${colors.border};
+          gap: 1rem;
           flex-wrap: wrap;
-          gap: 1rem;
         }
 
-        .header-left h1 {
-          font-family: 'Space Grotesk', sans-serif;
-          font-size: 2rem;
-          font-weight: 700;
-          letter-spacing: -0.04em;
-          color: ${headingColor};
-          transition: color 0.3s;
-        }
-
-        .header-left p {
-          color: ${mutedColor};
-          margin-top: 4px;
-        }
-
-        .stats {
+        .brand {
           display: flex;
-          gap: 1rem;
-        }
-
-        .stat-card {
-          background: ${cardBg};
-          padding: 0.75rem 1.25rem;
-          border-radius: 14px;
-          box-shadow: 0 4px 20px rgba(0, 0, 0, ${isDark ? '0.2' : '0.06'});
-          border: 1px solid ${borderColor};
-          min-width: 110px;
-          transition: background 0.3s;
-        }
-
-        .stat-number {
-          font-size: 0.8rem;
-          font-weight: 700;
-          color: ${textColor};
-        }
-
-        .stat-label {
-          font-size: 0.8rem;
-          color: ${mutedColor};
-          margin-top: 4px;
-        }
-
-        .main-content {
-          display: grid;
-          grid-template-columns: 1fr 280px;
-          gap: 1.5rem;
-        }
-
-        @media (max-width: 1024px) {
-          .main-content {
-            grid-template-columns: 1fr;
-          }
-        }
-
-        .todo-section {
-          background: ${cardBg};
-          border-radius: 20px;
-          box-shadow: 0 10px 40px rgba(0, 0, 0, ${isDark ? '0.2' : '0.07'});
-          border: 1px solid ${borderColor};
-          overflow: hidden;
-          height: fit-content;
-          transition: background 0.3s;
-        }
-
-        .todo-header {
-          padding: 1.25rem 1.5rem;
-          border-bottom: 1px solid ${borderColor};
-          display: flex;
-          justify-content: space-between;
           align-items: center;
+          gap: 0.75rem;
         }
 
-        .todo-header h2 {
-          font-size: 1.15rem;
+        .brand-icon {
+          width: 36px;
+          height: 36px;
+          border-radius: 10px;
+          background: var(--accent);
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          font-size: 1rem;
+          box-shadow: 0 4px 14px ${colors.accent}44;
+          flex-shrink: 0;
+        }
+
+        .brand-text {
+          font-family: 'Syne', sans-serif;
+          font-size: 1.1rem;
+          font-weight: 700;
+          color: ${colors.heading};
+          letter-spacing: -0.02em;
+        }
+
+        .brand-sub {
+          font-size: 0.75rem;
+          color: ${colors.textMuted};
+          font-weight: 400;
+          margin-top: 1px;
+        }
+
+        .topbar-right {
+          display: flex;
+          align-items: center;
+          gap: 0.75rem;
+        }
+
+        .stat-pill {
+          display: flex;
+          align-items: center;
+          gap: 0.4rem;
+          padding: 0.4rem 0.9rem;
+          background: ${colors.surface};
+          border: 1px solid ${colors.border};
+          border-radius: 999px;
+          font-size: 0.8rem;
+          color: ${colors.textMuted};
+          font-weight: 500;
+          transition: border-color 0.2s;
+          white-space: nowrap;
+        }
+
+        .stat-pill strong {
+          color: ${colors.text};
           font-weight: 600;
-          color: ${textColor};
         }
 
-        .input-area {
-          padding: 1.5rem;
-          border-bottom: 1px solid ${borderColor};
+        .stat-pill-dot {
+          width: 6px;
+          height: 6px;
+          border-radius: 50%;
+          flex-shrink: 0;
+        }
+
+        .avatar-btn {
+          width: 38px;
+          height: 38px;
+          border-radius: 50%;
+          border: 2px solid var(--accent);
+          background: var(--accent-dim);
+          color: var(--accent);
+          font-family: 'Syne', sans-serif;
+          font-weight: 700;
+          font-size: 0.9rem;
+          cursor: pointer;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          transition: all 0.2s;
+          flex-shrink: 0;
+        }
+
+        .avatar-btn:hover {
+          background: var(--accent);
+          color: white;
+          transform: scale(1.05);
+          box-shadow: 0 4px 12px ${colors.accent}44;
+        }
+
+        /* ─── BODY GRID ───────────────────────────────────────── */
+        .body-grid {
+          flex: 1;
+          display: grid;
+          grid-template-columns: 1fr 300px;
+          gap: 1.5rem;
+          padding: 2rem 0;
+          align-items: start;
+        }
+
+        /* ─── MAIN COLUMN ─────────────────────────────────────── */
+        .main-col {
+          display: flex;
+          flex-direction: column;
+          gap: 1.25rem;
+        }
+
+        /* ─── PROGRESS BANNER ─────────────────────────────────── */
+        .progress-banner {
+          background: ${colors.surface};
+          border: 1px solid ${colors.border};
+          border-radius: 20px;
+          padding: 1.25rem 1.5rem;
+          display: flex;
+          align-items: center;
+          gap: 1.5rem;
+          overflow: hidden;
+          position: relative;
+        }
+
+        .progress-banner::before {
+          content: '';
+          position: absolute;
+          top: 0; left: 0; right: 0;
+          height: 2px;
+          background: linear-gradient(90deg, var(--accent) ${completionPct}%, ${colors.border} ${completionPct}%);
+          transition: background 0.6s;
+        }
+
+        .progress-greeting {
+          flex: 1;
+        }
+
+        .progress-greeting h2 {
+          font-family: 'Syne', sans-serif;
+          font-size: 1.15rem;
+          font-weight: 700;
+          color: ${colors.heading};
+          letter-spacing: -0.02em;
+        }
+
+        .progress-greeting p {
+          font-size: 0.82rem;
+          color: ${colors.textMuted};
+          margin-top: 3px;
+        }
+
+        .progress-ring-wrap {
+          position: relative;
+          width: 64px;
+          height: 64px;
+          flex-shrink: 0;
+        }
+
+        .progress-ring-label {
+          position: absolute;
+          inset: 0;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          font-family: 'Syne', sans-serif;
+          font-size: 0.8rem;
+          font-weight: 700;
+          color: var(--accent);
+        }
+
+        /* ─── CARD (todo panel) ───────────────────────────────── */
+        .card {
+          background: ${colors.surface};
+          border: 1px solid ${colors.border};
+          border-radius: 20px;
+          overflow: hidden;
+          transition: background 0.3s;
+        }
+
+        .card-header {
+          padding: 1.1rem 1.5rem;
+          border-bottom: 1px solid ${colors.border};
+          display: flex;
+          align-items: center;
+          justify-content: space-between;
+        }
+
+        .card-title {
+          font-family: 'Syne', sans-serif;
+          font-size: 0.95rem;
+          font-weight: 700;
+          color: ${colors.heading};
+          letter-spacing: -0.01em;
+        }
+
+        .badge {
+          font-size: 0.72rem;
+          font-weight: 600;
+          padding: 3px 9px;
+          border-radius: 999px;
+          background: var(--accent-dim);
+          color: var(--accent);
+          border: 1px solid var(--accent-mid);
+        }
+
+        /* ─── INPUT AREA ──────────────────────────────────────── */
+        .input-zone {
+          padding: 1.25rem 1.5rem;
+          border-bottom: 1px solid ${colors.border};
         }
 
         .input-row {
           display: flex;
           gap: 10px;
+          align-items: stretch;
         }
 
         .main-input {
           flex: 1;
-          background: ${inputBg};
-          border: 2px solid ${borderColor};
+          background: ${colors.input};
+          border: 1.5px solid ${colors.inputBorder};
           border-radius: 14px;
-          padding: 12px 16px;
-          font-size: 0.95rem;
+          padding: 13px 16px;
+          font-size: 0.9rem;
+          font-family: 'DM Sans', sans-serif;
           outline: none;
+          color: ${colors.text};
           transition: all 0.2s;
-          color: ${textColor};
+          min-width: 0;
         }
 
+        .main-input::placeholder { color: ${colors.textSub}; }
+
         .main-input:focus {
-          border-color: ${theme.primary};
-          box-shadow: 0 0 0 4px ${theme.primary}20;
+          border-color: var(--accent);
+          background: ${colors.surface};
+          box-shadow: 0 0 0 3px var(--accent-dim);
         }
 
         .add-btn {
-          width: 48px;
-          height: 48px;
+          height: 46px;
+          width: 46px;
           border-radius: 14px;
-          background: ${theme.gradient};
+          background: var(--accent);
           color: white;
           border: none;
-          font-size: 22px;
+          font-size: 1.4rem;
+          line-height: 1;
           display: flex;
           align-items: center;
           justify-content: center;
           cursor: pointer;
-          box-shadow: ${theme.boxShadow};
+          box-shadow: 0 4px 14px ${colors.accent}44;
           transition: all 0.2s;
+          flex-shrink: 0;
         }
 
-        .add-btn:hover { transform: scale(1.06); }
+        .add-btn:hover:not(:disabled) {
+          transform: scale(1.06);
+          box-shadow: 0 6px 20px ${colors.accent}55;
+        }
 
-        .priority-group {
+        .add-btn:disabled { opacity: 0.45; cursor: not-allowed; }
+
+        .priority-row {
           display: flex;
           gap: 8px;
-          margin-top: 1rem;
+          margin-top: 0.9rem;
         }
 
-        .priority-btn {
+        .pri-btn {
           flex: 1;
-          padding: 10px 12px;
+          padding: 9px 10px;
           border-radius: 12px;
-          border: 2px solid ${borderColor};
-          background: ${cardBg};
+          border: 1.5px solid ${colors.inputBorder};
+          background: transparent;
+          font-family: 'DM Sans', sans-serif;
+          font-size: 0.8rem;
           font-weight: 500;
-          font-size: 0.9rem;
           display: flex;
           align-items: center;
-          gap: 8px;
+          gap: 7px;
           cursor: pointer;
           transition: all 0.2s;
-          color: ${textColor};
+          color: ${colors.textMuted};
+          white-space: nowrap;
         }
 
-        .priority-btn.active {
-          border-color: ${theme.primary};
-          background: ${theme.primary}15;
-          color: ${theme.primary};
+        .pri-dot {
+          width: 8px;
+          height: 8px;
+          border-radius: 50%;
+          flex-shrink: 0;
         }
 
-        .filters {
+        /* ─── FILTER TABS ─────────────────────────────────────── */
+        .filter-tabs {
           display: flex;
-          background: ${inputBg};
-          padding: 6px;
-          border-radius: 9999px;
-          margin: 0 1.5rem 1.25rem;
+          gap: 4px;
+          padding: 0.9rem 1.5rem;
+          border-bottom: 1px solid ${colors.border};
         }
 
-        .filter-btn {
+        .filter-tab {
           flex: 1;
-          padding: 8px 16px;
-          border-radius: 9999px;
+          padding: 8px 12px;
+          border-radius: 10px;
           border: none;
           background: transparent;
+          font-family: 'DM Sans', sans-serif;
+          font-size: 0.82rem;
           font-weight: 500;
-          font-size: 0.9rem;
-          color: ${mutedColor};
+          color: ${colors.textMuted};
           cursor: pointer;
           transition: all 0.2s;
+          text-align: center;
         }
 
-        .filter-btn.active {
-          background: ${cardBg};
-          color: ${textColor};
-          box-shadow: 0 4px 15px rgba(0, 0, 0, ${isDark ? '0.3' : '0.08'});
+        .filter-tab.active {
+          background: var(--accent-dim);
+          color: var(--accent);
+          font-weight: 600;
         }
 
+        /* ─── TODO LIST ───────────────────────────────────────── */
         .todo-list {
-          padding: 0 1.5rem 1.5rem;
+          padding: 1rem 1.25rem;
           display: flex;
           flex-direction: column;
-          gap: 8px;
+          gap: 6px;
+          min-height: 100px;
         }
 
         .todo-item {
-          background: ${cardBg};
-          border: 1px solid ${borderColor};
-          border-radius: 16px;
-          padding: 1rem 1.25rem;
           display: flex;
           align-items: center;
-          gap: 12px;
-          transition: all 0.25s ease;
+          gap: 11px;
+          padding: 11px 14px;
+          border-radius: 14px;
+          border: 1px solid ${colors.border};
+          background: ${colors.input};
+          transition: all 0.22s ease;
+          position: relative;
+          overflow: hidden;
+        }
+
+        .todo-item::before {
+          content: '';
+          position: absolute;
+          left: 0; top: 0; bottom: 0;
+          width: 3px;
+          border-radius: 0 2px 2px 0;
+          background: transparent;
+          transition: background 0.2s;
         }
 
         .todo-item:hover {
-          border-color: ${mutedColor};
-          box-shadow: 0 10px 25px rgba(0, 0, 0, ${isDark ? '0.15' : '0.06'});
-          transform: translateY(-2px);
+          border-color: ${colors.borderHover};
+          background: ${colors.surfaceHover};
+          transform: translateX(2px);
+          box-shadow: 0 4px 16px rgba(0,0,0,${isDark ? '0.2' : '0.06'});
         }
 
-        .todo-item.completed {
-          opacity: 0.75;
-        }
+        .todo-item.completed { opacity: 0.6; }
 
-        .checkbox {
-          width: 24px;
-          height: 24px;
-          border: 2px solid ${mutedColor};
-          border-radius: 8px;
+        .todo-check {
+          width: 22px;
+          height: 22px;
+          border: 2px solid ${colors.border};
+          border-radius: 7px;
           display: flex;
           align-items: center;
           justify-content: center;
           cursor: pointer;
           transition: all 0.2s;
+          flex-shrink: 0;
+          background: transparent;
         }
 
-        .checkbox.checked {
-          background: ${theme.gradient};
-          border-color: transparent;
+        .todo-check:hover { border-color: var(--accent); }
+
+        .todo-check.checked {
+          background: var(--accent);
+          border-color: var(--accent);
+          box-shadow: 0 2px 8px ${colors.accent}44;
         }
 
         .todo-text {
           flex: 1;
-          font-size: 0.95rem;
+          font-size: 0.88rem;
           line-height: 1.5;
-          color: ${textColor};
+          color: ${colors.text};
+          min-width: 0;
+          word-break: break-word;
         }
 
         .todo-text.done {
           text-decoration: line-through;
-          color: ${mutedColor};
+          color: ${colors.textMuted};
         }
 
         .edit-input {
           flex: 1;
-          background: ${inputBg};
-          border: 2px solid ${theme.primary};
-          border-radius: 12px;
-          padding: 10px 14px;
-          font-size: 0.95rem;
+          background: ${colors.surface};
+          border: 1.5px solid var(--accent);
+          border-radius: 9px;
+          padding: 7px 11px;
+          font-size: 0.88rem;
+          font-family: 'DM Sans', sans-serif;
           outline: none;
-          color: ${textColor};
+          color: ${colors.text};
+          box-shadow: 0 0 0 3px var(--accent-dim);
+          min-width: 0;
         }
 
-        .actions {
+        .item-actions {
           display: flex;
-          gap: 6px;
-          opacity: 0.6;
+          gap: 4px;
+          opacity: 0;
+          transition: opacity 0.18s;
+          flex-shrink: 0;
         }
 
-        .todo-item:hover .actions { opacity: 1; }
+        .todo-item:hover .item-actions { opacity: 1; }
 
         .icon-btn {
-          width: 32px;
-          height: 32px;
+          width: 28px;
+          height: 28px;
           border-radius: 8px;
           display: flex;
           align-items: center;
           justify-content: center;
-          font-size: 0.95rem;
-          background: ${inputBg};
-          color: ${mutedColor};
-          border: 1px solid ${borderColor};
-          transition: all 0.2s;
+          font-size: 0.8rem;
+          background: ${colors.surface};
+          color: ${colors.textMuted};
+          border: 1px solid ${colors.border};
+          cursor: pointer;
+          transition: all 0.15s;
+          flex-shrink: 0;
         }
 
         .icon-btn:hover {
-          background: ${borderColor};
-          color: ${textColor};
+          background: var(--accent-dim);
+          color: var(--accent);
+          border-color: var(--accent-mid);
         }
 
-        .sidebar {
-          background: ${cardBg};
+        .priority-pip {
+          width: 8px;
+          height: 8px;
+          border-radius: 50%;
+          flex-shrink: 0;
+        }
+
+        /* ─── EMPTY STATE ─────────────────────────────────────── */
+        .empty-state {
+          text-align: center;
+          padding: 3.5rem 1rem;
+          color: ${colors.textMuted};
+        }
+
+        .empty-icon {
+          font-size: 2.5rem;
+          margin-bottom: 0.75rem;
+          opacity: 0.4;
+        }
+
+        .empty-state p {
+          font-size: 0.88rem;
+        }
+
+        /* ─── SIDEBAR ─────────────────────────────────────────── */
+        .sidebar-col {
+          display: flex;
+          flex-direction: column;
+          gap: 1.25rem;
+          position: sticky;
+          top: 1.5rem;
+        }
+
+        .sidebar-card {
+          background: ${colors.surface};
+          border: 1px solid ${colors.border};
           border-radius: 20px;
-          padding: 1.5rem;
-          box-shadow: 0 10px 40px rgba(0, 0, 0, ${isDark ? '0.2' : '0.07'});
-          border: 1px solid ${borderColor};
-          height: fit-content;
+          padding: 1.25rem;
           transition: background 0.3s;
         }
 
-        .sidebar h3 {
-          font-size: 1rem;
-          margin-bottom: 1.25rem;
-          color: ${textColor};
+        .sidebar-label {
+          font-family: 'Syne', sans-serif;
+          font-size: 0.78rem;
+          font-weight: 700;
+          letter-spacing: 0.08em;
+          text-transform: uppercase;
+          color: ${colors.textMuted};
+          margin-bottom: 1.1rem;
         }
 
-        .priority-legend {
-          display: flex;
-          flex-direction: column;
-          gap: 14px;
-        }
-
-        .legend-item {
+        /* Priority breakdown */
+        .pri-row {
           display: flex;
           align-items: center;
-          gap: 12px;
+          gap: 10px;
+          padding: 8px 0;
         }
 
-        .legend-dot {
-          width: 12px;
-          height: 12px;
+        .pri-row + .pri-row {
+          border-top: 1px solid ${colors.border};
+        }
+
+        .pri-row-dot {
+          width: 10px;
+          height: 10px;
           border-radius: 50%;
+          flex-shrink: 0;
         }
 
-        .footer {
-          margin-top: 2rem;
-          text-align: center;
-          color: ${mutedColor};
+        .pri-row-label {
+          flex: 1;
           font-size: 0.85rem;
+          color: ${colors.text};
+          font-weight: 500;
         }
 
-        .profile-btn {
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          padding: 8px;
-          background: ${theme.gradient};
-          border: none;
-          border-radius: 50%;
+        .pri-row-bar-wrap {
+          width: 60px;
+          height: 4px;
+          background: ${colors.border};
+          border-radius: 999px;
+          overflow: hidden;
+        }
+
+        .pri-row-bar {
+          height: 100%;
+          border-radius: 999px;
+          transition: width 0.4s ease;
+        }
+
+        .pri-row-count {
+          font-size: 0.8rem;
+          font-weight: 600;
+          color: ${colors.textMuted};
+          min-width: 18px;
+          text-align: right;
+        }
+
+        /* Clear completed */
+        .clear-btn {
+          width: 100%;
+          padding: 11px;
+          border-radius: 12px;
+          border: 1.5px solid transparent;
+          font-family: 'DM Sans', sans-serif;
+          font-size: 0.85rem;
+          font-weight: 600;
           cursor: pointer;
           transition: all 0.2s;
-          box-shadow: ${theme.boxShadow};
-        }
-
-        .profile-btn:hover {
-          transform: scale(1.05);
-        }
-
-        .profile-avatar-small {
-          width: 36px;
-          height: 36px;
-          border-radius: 50%;
           display: flex;
           align-items: center;
           justify-content: center;
-          color: white;
-          font-weight: 700;
-          font-size: 0.9rem;
+          gap: 6px;
         }
 
+        .clear-btn.has-completed {
+          background: rgba(239,68,68,0.08);
+          color: #ef4444;
+          border-color: rgba(239,68,68,0.25);
+        }
+
+        .clear-btn.has-completed:hover {
+          background: rgba(239,68,68,0.14);
+          box-shadow: 0 4px 12px rgba(239,68,68,0.15);
+        }
+
+        .clear-btn.none {
+          background: ${colors.input};
+          color: ${colors.textSub};
+          cursor: not-allowed;
+          border-color: ${colors.border};
+        }
+
+        /* ─── FOOTER ──────────────────────────────────────────── */
+        .footer {
+          padding: 1.25rem 0;
+          border-top: 1px solid ${colors.border};
+          text-align: center;
+          font-size: 0.76rem;
+          color: ${colors.textSub};
+          letter-spacing: 0.02em;
+        }
+
+        /* ─── MODAL ───────────────────────────────────────────── */
         .modal-overlay {
           position: fixed;
-          top: 0;
-          left: 0;
-          right: 0;
-          bottom: 0;
-          background: rgba(0, 0, 0, 0.5);
+          inset: 0;
+          background: rgba(0,0,0,0.55);
+          backdrop-filter: blur(4px);
           display: flex;
           align-items: center;
           justify-content: center;
-          z-index: 1000;
+          z-index: 9999;
           padding: 1rem;
         }
 
-        .modal-content {
-          background: ${cardBg};
+        .modal-box {
+          background: ${colors.surface};
+          border: 1px solid ${colors.border};
           border-radius: 24px;
-          padding: 2.5rem;
-          max-width: 400px;
+          padding: 2rem;
+          max-width: 380px;
           width: 100%;
-          box-shadow: 0 20px 60px rgba(0, 0, 0, 0.2);
-          color: ${textColor};
+          box-shadow: 0 24px 60px rgba(0,0,0,0.3);
         }
 
         .modal-title {
-          font-family: 'Space Grotesk', sans-serif;
-          font-size: 1.4rem;
+          font-family: 'Syne', sans-serif;
+          font-size: 1.25rem;
           font-weight: 700;
-          color: ${headingColor};
+          color: ${colors.heading};
           margin-bottom: 0.5rem;
         }
 
-        .modal-text {
-          color: ${mutedColor};
-          font-size: 0.95rem;
+        .modal-body {
+          font-size: 0.88rem;
+          color: ${colors.textMuted};
           margin-bottom: 1.5rem;
+          line-height: 1.6;
         }
 
-        .modal-actions {
+        .modal-btns {
           display: flex;
-          gap: 12px;
+          gap: 10px;
         }
 
-        .modal-actions button {
-          flex: 1;
-        }
+        .modal-btns button { flex: 1; }
 
-        .btn-secondary {
-          padding: 12px 24px;
-          background: ${inputBg};
-          color: ${mutedColor};
-          border: 1px solid ${borderColor};
+        .btn-cancel {
+          padding: 11px;
+          background: ${colors.input};
+          color: ${colors.textMuted};
+          border: 1px solid ${colors.border};
           border-radius: 12px;
-          font-size: 0.95rem;
+          font-family: 'DM Sans', sans-serif;
+          font-size: 0.88rem;
           font-weight: 500;
           cursor: pointer;
+          transition: all 0.2s;
         }
+
+        .btn-cancel:hover { background: ${colors.border}; }
 
         .btn-danger {
-          padding: 12px 24px;
-          background: #fef2f2;
-          color: #dc2626;
-          border: 1px solid #fecaca;
+          padding: 11px;
+          background: rgba(239,68,68,0.1);
+          color: #ef4444;
+          border: 1px solid rgba(239,68,68,0.3);
           border-radius: 12px;
-          font-size: 0.95rem;
-          font-weight: 500;
+          font-family: 'DM Sans', sans-serif;
+          font-size: 0.88rem;
+          font-weight: 600;
           cursor: pointer;
+          transition: all 0.2s;
+        }
+
+        .btn-danger:hover { background: rgba(239,68,68,0.18); }
+
+        /* ─── RESPONSIVE ──────────────────────────────────────── */
+        @media (max-width: 1024px) {
+          .body-grid {
+            grid-template-columns: 1fr;
+          }
+          .sidebar-col {
+            position: static;
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+          }
         }
 
         @media (max-width: 768px) {
-          .dashboard { padding: 1.5rem 5%; }
-          .header { margin-bottom: 1.5rem; flex-direction: column; align-items: stretch; gap: 1rem; }
-          .header-left h1 { font-size: 1.5rem; }
-          .stats { justify-content: center; flex-wrap: wrap; gap: 0.75rem; }
-          .stat-card { min-width: 80px; padding: 0.6rem 0.9rem; }
-          .stat-number { font-size: 1.2rem; }
-          .stat-label { font-size: 0.2rem; }
-          .main-content { gap: 1.25rem; }
-          .todo-header, .input-area, .todo-list { padding-left: 1rem; padding-right: 1rem; }
-          .input-row { flex-direction: column; }
-          .add-btn { width: 100%; height: 44px; border-radius: 12px; font-size: 1.1rem; }
-          .priority-group { flex-wrap: wrap; }
-          .priority-btn { padding: 8px 10px; font-size: 0.8rem; }
-          .filters { margin: 0 1rem 1rem; }
-          .sidebar { padding: 1.25rem; }
-          .todo-item { padding: 0.875rem; }
-          .profile-avatar-small { width: 32px; height: 32px; font-size: 0.8rem; }
+          .page-inner { padding: 0 1rem; }
+          .topbar { padding: 1rem 0; }
+          .topbar-right { gap: 0.5rem; }
+          .stat-pill { display: none; }
+          .stat-pill.always { display: flex; }
+          .body-grid { gap: 1rem; padding: 1.25rem 0; }
+          .sidebar-col { grid-template-columns: 1fr; }
+          .progress-banner { padding: 1rem 1.25rem; gap: 1rem; }
+          .input-zone { padding: 1rem 1.25rem; }
+          .card-header { padding: 0.9rem 1.25rem; }
+          .filter-tabs { padding: 0.75rem 1.25rem; }
+          .todo-list { padding: 0.75rem 1rem; }
+          .priority-row { gap: 6px; }
+          .pri-btn { padding: 8px; font-size: 0.75rem; gap: 5px; }
         }
 
         @media (max-width: 480px) {
-          .dashboard { padding: 1rem 4%; }
-          .profile-card { padding: 1.25rem; border-radius: 16px; }
-          .todo-section { border-radius: 16px; }
-          .sidebar { padding: 1rem; }
+          .progress-ring-wrap { display: none; }
+          .priority-row { display: grid; grid-template-columns: 1fr 1fr 1fr; }
         }
+
+        /* ─── TRANSITIONS & ANIMATIONS ──────────────────────── */
+        @keyframes fadeIn {
+          from { opacity: 0; transform: translateY(6px); }
+          to   { opacity: 1; transform: translateY(0); }
+        }
+
+        .todo-item { animation: fadeIn 0.2s ease both; }
       `}</style>
 
-      <div className="dashboard">
-        <div className="container">
-          <div className="header">
-            <div className="header-left">
-              <h5>
-                {user ? `Welcome, ${user.name}!` : 'Welcome'}
-              </h5>
-              <p style={{fontSize:"10px", fontWeight:"bold"}}>Stay organized • Get things done</p>
+      <div className="page-wrap">
+        <div className="page-inner">
+
+          {/* ── TOPBAR ─────────────────────────────────────── */}
+          <header className="topbar">
+            <div className="brand">
+              <div className="brand-icon">✓</div>
+              <div>
+                <div className="brand-text">TaskFlow</div>
+                <div className="brand-sub">Stay sharp, stay done</div>
+              </div>
             </div>
 
-            <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
-              <div className="stats">
-                <div className="stat-card"> 
-                  <div className="stat-number">{activeCount}</div>
-                  <div className="stat-label">Remaining</div>
-                </div>
-                <div className="stat-card">
-                  <div className="stat-number">{completedCount}</div>
-                  <div className="stat-label">Completed</div>
-                </div>
-                <div className="stat-card">
-                  <div className="stat-number">{totalCount}</div>
-                  <div className="stat-label">Total</div>
-                </div>
+            <div className="topbar-right">
+              <div className="stat-pill always">
+                <span className="stat-pill-dot" style={{ background: '#22c55e' }} />
+                <strong>{activeCount}</strong>
+                <span>remaining</span>
               </div>
-              
+              <div className="stat-pill">
+                <strong>{completedCount}</strong>
+                <span>done</span>
+              </div>
+              <div className="stat-pill">
+                <strong>{totalCount}</strong>
+                <span>total</span>
+              </div>
+
               {user && (
                 <button
-                  className="profile-btn"
+                  className="avatar-btn"
                   onClick={() => router.push('/profile')}
                   title="Profile"
                 >
-                  <div className="profile-avatar-small">
-                    {user.name.charAt(0).toUpperCase()}
-                  </div>
+                  {user.name.charAt(0).toUpperCase()}
                 </button>
               )}
             </div>
-          </div>
+          </header>
 
-          <div className="main-content">
-            <div className="todo-section">
-              <div className="todo-header">
-                <h3 style={{fontFamily:"emoji"}}>My Tasks</h3>
-                <span style={{ color: mutedColor, fontSize: '0.95rem' }}>
-                  {filter === 'all' ? 'All Tasks' : filter === 'active' ? 'Active' : 'Completed'}
-                </span>
-              </div>
+          {/* ── BODY GRID ──────────────────────────────────── */}
+          <div className="body-grid">
 
-              <div className="input-area">
-                <div className="input-row">
-                  <input
-                    ref={inputRef}
-                    className="main-input"
-                    placeholder="What needs to be done?"
-                    value={text}
-                    onChange={(e) => setText(e.target.value)}
-                    onKeyDown={(e) => e.key === "Enter" && addTodo()}
-                  />
-                  <button className="add-btn" onClick={addTodo} disabled={adding || !text.trim()}>
-                    +
-                  </button>
+            {/* Main column */}
+            <div className="main-col">
+
+              {/* Progress banner */}
+              <div className="progress-banner">
+                <div className="progress-greeting">
+                  <h2>{user ? `Hey, ${user.name}!` : 'Welcome back!'}</h2>
+                  <p>
+                    {totalCount === 0
+                      ? 'Add your first task below'
+                      : completionPct === 100
+                        ? '🎉 All tasks complete!'
+                        : `${completionPct}% of your tasks completed`
+                    }
+                  </p>
                 </div>
-
-                <div className="priority-group">
-                  {(["low", "medium", "high"] as Priority[]).map((p) => {
-                    const cfg = PRIORITY_CONFIG[p];
-                    const isActive = priority === p;
-                    return (
-                      <button
-                        key={p}
-                        className={`priority-btn ${isActive ? "active" : ""}`}
-                        style={isActive ? { borderColor: cfg.border, background: cfg.bg, color: cfg.color } : {}}
-                        onClick={() => setPriority(p)}
-                      >
-                        <span className="priority-dot" style={{ background: cfg.color, width: '10px', height: '10px' }} />
-                        {cfg.label}
-                      </button>
-                    );
-                  })}
+                <div className="progress-ring-wrap">
+                  <svg width="64" height="64" viewBox="0 0 64 64">
+                    <circle cx="32" cy="32" r="26" fill="none" stroke={colors.border} strokeWidth="5" />
+                    <circle
+                      cx="32" cy="32" r="26"
+                      fill="none"
+                      stroke={colors.accent}
+                      strokeWidth="5"
+                      strokeLinecap="round"
+                      strokeDasharray={`${2 * Math.PI * 26}`}
+                      strokeDashoffset={`${2 * Math.PI * 26 * (1 - completionPct / 100)}`}
+                      transform="rotate(-90 32 32)"
+                      style={{ transition: 'stroke-dashoffset 0.6s ease' }}
+                    />
+                  </svg>
+                  <div className="progress-ring-label">{completionPct}%</div>
                 </div>
               </div>
 
-              <div className="filters">
-                {(["all", "active", "completed"] as Filter[]).map((f) => (
-                  <button
-                    key={f}
-                    className={`filter-btn ${filter === f ? "active" : ""}`}
-                    onClick={() => setFilter(f)}
-                  >
-                    {f === 'all' ? 'All' : f.charAt(0).toUpperCase() + f.slice(1)}
-                  </button>
-                ))}
-              </div>
+              {/* Todo card */}
+              <div className="card">
+                <div className="card-header">
+                  <span className="card-title">My Tasks</span>
+                  <span className="badge">
+                    {filter === 'all' ? 'All' : filter === 'active' ? 'Active' : 'Completed'}
+                  </span>
+                </div>
 
-              <div className="todo-list">
-                {loading ? (
-                  <div style={{ textAlign: 'center', padding: '3rem', color: mutedColor }}>Loading tasks...</div>
-                ) : filteredTodos.length === 0 ? (
-                  <div style={{ textAlign: 'center', padding: '4rem 2rem', color: mutedColor }}>
-                    <div style={{ fontSize: '3.5rem', marginBottom: '1rem' }}>📋</div>
-                    <p>No {filter} tasks yet</p>
+                {/* Input */}
+                <div className="input-zone">
+                  <div className="input-row">
+                    <input
+                      ref={inputRef}
+                      className="main-input"
+                      placeholder="What needs to be done?"
+                      value={text}
+                      onChange={(e) => setText(e.target.value)}
+                      onKeyDown={(e) => e.key === "Enter" && addTodo()}
+                    />
+                    <button className="add-btn" onClick={addTodo} disabled={adding || !text.trim()}>
+                      +
+                    </button>
                   </div>
-                ) : (
-                  filteredTodos.map((todo) => (
-                    <div key={todo.id} className={`todo-item ${todo.completed ? "completed" : ""}`}>
+
+                  <div className="priority-row">
+                    {(["low", "medium", "high"] as Priority[]).map((p) => {
+                      const cfg = PRIORITY_CONFIG[p];
+                      const active = priority === p;
+                      return (
+                        <button
+                          key={p}
+                          className="pri-btn"
+                          style={active ? {
+                            borderColor: cfg.border,
+                            background: cfg.bg,
+                            color: cfg.color,
+                          } : {}}
+                          onClick={() => setPriority(p)}
+                        >
+                          <span className="pri-dot" style={{ background: cfg.color }} />
+                          {cfg.label}
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+
+                {/* Filter tabs */}
+                <div className="filter-tabs">
+                  {(["all", "active", "completed"] as Filter[]).map((f) => (
+                    <button
+                      key={f}
+                      className={`filter-tab ${filter === f ? "active" : ""}`}
+                      onClick={() => setFilter(f)}
+                    >
+                      {f.charAt(0).toUpperCase() + f.slice(1)}
+                    </button>
+                  ))}
+                </div>
+
+                {/* List */}
+                <div className="todo-list">
+                  {loading ? (
+                    <div className="empty-state">
+                      <div className="empty-icon">⏳</div>
+                      <p>Loading tasks…</p>
+                    </div>
+                  ) : filteredTodos.length === 0 ? (
+                    <div className="empty-state">
+                      <div className="empty-icon">📋</div>
+                      <p>No {filter} tasks yet</p>
+                    </div>
+                  ) : filteredTodos.map((todo) => (
+                    <div
+                      key={todo.id}
+                      className={`todo-item ${todo.completed ? "completed" : ""}`}
+                      style={{ ['--item-border' as string]: PRIORITY_CONFIG[todo.priority].color }}
+                    >
                       <div
-                        className={`checkbox ${todo.completed ? "checked" : ""}`}
+                        className={`todo-check ${todo.completed ? "checked" : ""}`}
                         onClick={() => toggleTodo(todo.id)}
                       >
                         {todo.completed && (
-                          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="4">
+                          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="3.5">
                             <polyline points="20 6 9 17 4 12" />
                           </svg>
                         )}
@@ -753,7 +1113,7 @@ export default function Home() {
                         </span>
                       )}
 
-                      <div className="actions">
+                      <div className="item-actions">
                         {editingId === todo.id ? (
                           <button className="icon-btn" onClick={() => saveEdit(todo.id)}>✓</button>
                         ) : (
@@ -762,77 +1122,72 @@ export default function Home() {
                         <button className="icon-btn" onClick={() => deleteTodo(todo.id)}>✕</button>
                       </div>
 
-                      <div style={{
-                        width: '10px',
-                        height: '10px',
-                        borderRadius: '50%',
-                        background: PRIORITY_CONFIG[todo.priority].color,
-                        marginLeft: 'auto',
-                        flexShrink: 0
-                      }} />
+                      <span
+                        className="priority-pip"
+                        style={{ background: PRIORITY_CONFIG[todo.priority].color }}
+                      />
                     </div>
-                  ))
-                )}
+                  ))}
+                </div>
               </div>
             </div>
 
-            <div className="sidebar">
-              <h3>Priority Overview</h3>
-              <div className="priority-legend">
+            {/* Sidebar */}
+            <div className="sidebar-col">
+
+              {/* Priority overview */}
+              <div className="sidebar-card">
+                <div className="sidebar-label">Priority Breakdown</div>
                 {(["high", "medium", "low"] as Priority[]).map((p) => {
                   const cfg = PRIORITY_CONFIG[p];
                   const count = todos.filter(t => t.priority === p).length;
+                  const pct = totalCount > 0 ? (count / totalCount) * 100 : 0;
                   return (
-                    <div key={p} className="legend-item">
-                      <div className="legend-dot" style={{ background: cfg.color }} />
-                      <div style={{ flex: 1 }}>
-                        <strong>{cfg.label}</strong>
+                    <div key={p} className="pri-row">
+                      <span className="pri-row-dot" style={{ background: cfg.color }} />
+                      <span className="pri-row-label">{cfg.label}</span>
+                      <div className="pri-row-bar-wrap">
+                        <div
+                          className="pri-row-bar"
+                          style={{ width: `${pct}%`, background: cfg.color }}
+                        />
                       </div>
-                      <div style={{ color: mutedColor, fontWeight: 500 }}>{count}</div>
+                      <span className="pri-row-count">{count}</span>
                     </div>
                   );
                 })}
               </div>
 
-              <div style={{ marginTop: '3rem', paddingTop: '2rem', borderTop: `1px solid ${borderColor}` }}>
-                <button 
+              {/* Actions */}
+              <div className="sidebar-card">
+                <div className="sidebar-label">Actions</div>
+                <button
+                  className={`clear-btn ${completedCount > 0 ? 'has-completed' : 'none'}`}
                   onClick={clearCompleted}
                   disabled={completedCount === 0}
-                  style={{
-                    width: '100%',
-                    padding: '14px',
-                    background: completedCount > 0 ? '#fee2e2' : inputBg,
-                    color: completedCount > 0 ? '#ef4444' : mutedColor,
-                    border: 'none',
-                    borderRadius: '14px',
-                    fontWeight: 600,
-                    cursor: completedCount > 0 ? 'pointer' : 'not-allowed'
-                  }}
                 >
-                  Clear Completed ({completedCount})
+                  🗑 Clear Completed ({completedCount})
                 </button>
               </div>
             </div>
           </div>
 
-          <div className="footer">
-            Built with focus • {new Date().getFullYear()}
-          </div>
+          {/* Footer */}
+          <footer className="footer">
+            Built with focus · {new Date().getFullYear()} · TaskFlow
+          </footer>
         </div>
       </div>
 
+      {/* Logout modal */}
       {showLogoutConfirm && (
         <div className="modal-overlay" onClick={() => setShowLogoutConfirm(false)}>
-          <div className="modal-content" onClick={(e) => e.stopPropagation()}>
-            <h2 className="modal-title">Logout?</h2>
-            <p className="modal-text">Are you sure you want to logout? You will be redirected to the login page.</p>
-            <div className="modal-actions">
-              <button className="btn-secondary" onClick={() => setShowLogoutConfirm(false)}>
-                Cancel
-              </button>
-              <button className="btn-danger" onClick={handleLogout}>
-                Logout
-              </button>
+          <div className="modal-box" onClick={(e) => e.stopPropagation()}>
+            <div className="modal-title">Sign out?</div>
+            <p className="modal-body">You'll be redirected to the login page. Your tasks will be saved.</p>
+            <div className="modal-btns">
+              <button className="btn-cancel" onClick={() => setShowLogoutConfirm(false)}>Cancel</button>
+              <button className="btn-danger" onClick={handleLogout}>Sign out</button>
             </div>
           </div>
         </div>
