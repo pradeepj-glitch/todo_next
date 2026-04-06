@@ -18,7 +18,7 @@ export default function ProfilePage() {
   const [newPassword, setNewPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
   const [showPasswordSection, setShowPasswordSection] = useState(false);
-  const [message, setMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
+  const [toast, setToast] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
   const [saving, setSaving] = useState(false);
   const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
   const [activeSection, setActiveSection] = useState<'profile' | 'security' | 'appearance'>('profile');
@@ -41,17 +41,19 @@ export default function ProfilePage() {
 
   const handleSave = async (e: React.FormEvent) => {
     e.preventDefault();
-    setMessage(null);
+    setToast(null);
     setSaving(true);
 
     if (newPassword && newPassword.length < 6) {
-      setMessage({ type: 'error', text: 'New password must be at least 6 characters' });
+      setToast({ type: 'error', text: 'New password must be at least 6 characters' });
+      setTimeout(() => setToast(null), 2000);
       setSaving(false);
       return;
     }
 
     if (newPassword && newPassword !== confirmPassword) {
-      setMessage({ type: 'error', text: 'New passwords do not match' });
+      setToast({ type: 'error', text: 'New passwords do not match' });
+      setTimeout(() => setToast(null), 2000);
       setSaving(false);
       return;
     }
@@ -72,17 +74,20 @@ export default function ProfilePage() {
 
       if (res.ok) {
         updateUser(data.user);
-        setMessage({ type: 'success', text: 'Profile updated successfully!' });
+        setToast({ type: 'success', text: 'Profile updated successfully!' });
+        setTimeout(() => setToast(null), 2000);
         setCurrentPassword("");
         setNewPassword("");
         setConfirmPassword("");
         setShowPasswordSection(false);
       } else {
-        setMessage({ type: 'error', text: data.error || 'Failed to update profile' });
+        setToast({ type: 'error', text: data.error || 'Failed to update profile' });
+        setTimeout(() => setToast(null), 2000);
       }
     // eslint-disable-next-line @typescript-eslint/no-unused-vars
     } catch (error) {
-      setMessage({ type: 'error', text: 'Network error. Please try again.' });
+      setToast({ type: 'error', text: 'Network error. Please try again.' });
+      setTimeout(() => setToast(null), 2000);
     }
 
     setSaving(false);
@@ -903,6 +908,46 @@ export default function ProfilePage() {
           flex-shrink: 0;
         }
 
+        /* ── Toast Notification ── */
+        .pp-toast {
+          position: fixed;
+          top: 1.5rem;
+          right: 1.5rem;
+          padding: 0.875rem 1.25rem;
+          border-radius: 12px;
+          font-size: 0.875rem;
+          font-weight: 500;
+          display: flex;
+          align-items: center;
+          gap: 0.625rem;
+          z-index: 9999;
+          animation: slideInRight 0.3s ease, fadeOut 0.3s ease 1.7s forwards;
+          box-shadow: 0 8px 32px rgba(0, 0, 0, 0.15);
+          max-width: 360px;
+        }
+
+        .pp-toast.success {
+          background: ${isDark ? '#052e16' : '#f0fdf4'};
+          border: 1px solid ${isDark ? '#14532d' : '#bbf7d0'};
+          color: ${isDark ? '#4ade80' : '#16a34a'};
+        }
+
+        .pp-toast.error {
+          background: ${isDark ? '#2d0a0a' : '#fef2f2'};
+          border: 1px solid ${isDark ? '#7f1d1d' : '#fecaca'};
+          color: ${isDark ? '#f87171' : '#dc2626'};
+        }
+
+        @keyframes slideInRight {
+          from { transform: translateX(100%); opacity: 0; }
+          to   { transform: translateX(0); opacity: 1; }
+        }
+
+        @keyframes fadeOut {
+          from { opacity: 1; }
+          to   { opacity: 0; transform: translateY(-10px); }
+        }
+
         /* ── Modal ── */
         .pp-modal-overlay {
           position: fixed;
@@ -1169,12 +1214,6 @@ export default function ProfilePage() {
                   <div className="pp-card-desc">Update your display name and account details.</div>
                 </div>
                 <div className="pp-card-body">
-                  {message && (
-                    <div className={`pp-message ${message.type}`}>
-                      <span>{message.type === 'success' ? '✓' : '!'}</span>
-                      {message.text}
-                    </div>
-                  )}
                   <form onSubmit={handleSave}>
                     <div className="pp-field">
                       <label className="pp-label">Full Name</label>
@@ -1209,12 +1248,6 @@ export default function ProfilePage() {
                   <div className="pp-card-desc">Choose a strong password to protect your account.</div>
                 </div>
                 <div className="pp-card-body">
-                  {message && (
-                    <div className={`pp-message ${message.type}`}>
-                      <span>{message.type === 'success' ? '✓' : '!'}</span>
-                      {message.text}
-                    </div>
-                  )}
                   {!showPasswordSection ? (
                     <button type="button" className="pp-password-toggle" onClick={() => setShowPasswordSection(true)}>
                       <div className="pp-password-toggle-icon">🔑</div>
@@ -1315,6 +1348,14 @@ export default function ProfilePage() {
           </div>
         </main>
       </div>
+
+      {/* Toast Notification */}
+      {toast && (
+        <div className={`pp-toast ${toast.type}`}>
+          <span>{toast.type === 'success' ? '✓' : '!'}</span>
+          {toast.text}
+        </div>
+      )}
 
       {/* Logout Modal */}
       {showLogoutConfirm && (

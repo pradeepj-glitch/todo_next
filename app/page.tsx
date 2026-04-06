@@ -1184,7 +1184,7 @@ export default function Home() {
         <div className="modal-overlay" onClick={() => setShowLogoutConfirm(false)}>
           <div className="modal-box" onClick={(e) => e.stopPropagation()}>
             <div className="modal-title">Sign out?</div>
-            <p className="modal-body">You'll be redirected to the login page. Your tasks will be saved.</p>
+            <p className="modal-body">You&apos;ll be redirected to the login page. Your tasks will be saved.</p>
             <div className="modal-btns">
               <button className="btn-cancel" onClick={() => setShowLogoutConfirm(false)}>Cancel</button>
               <button className="btn-danger" onClick={handleLogout}>Sign out</button>
