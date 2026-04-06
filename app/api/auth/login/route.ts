@@ -16,7 +16,7 @@ export async function POST(req: NextRequest) {
     }
 
     // Find user by email
-    const user = findUserByEmail(email);
+    const user = await findUserByEmail(email);
     if (!user) {
       return NextResponse.json(
         { error: "Invalid email or password" },
@@ -35,7 +35,7 @@ export async function POST(req: NextRequest) {
 
     // Generate JWT token
     const token = generateToken({
-      userId: user.id,
+      userId: user._id,
       email: user.email,
     });
 
@@ -43,7 +43,7 @@ export async function POST(req: NextRequest) {
     const response = NextResponse.json(
       {
         message: "Login successful",
-        user: { id: user.id, email: user.email, name: user.name },
+        user: { id: user._id, email: user.email, name: user.name },
       },
       { status: 200 }
     );

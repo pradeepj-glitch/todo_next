@@ -34,7 +34,7 @@ export async function GET(
     const todoId = Number(id);
 
     // Find todo with ownership verification
-    const todo = findTodoByIdAndUserId(todoId, payload.userId);
+    const todo = await findTodoByIdAndUserId(todoId, payload.userId);
 
     if (!todo) {
       return NextResponse.json(
@@ -43,7 +43,17 @@ export async function GET(
       );
     }
 
-    return NextResponse.json(todo, { status: 200 });
+    // Map _id to id for frontend compatibility
+    const todoWithId = {
+      id: todo._id,
+      userId: todo.userId,
+      text: todo.text,
+      completed: todo.completed,
+      priority: todo.priority,
+      createdAt: todo.createdAt,
+    };
+
+    return NextResponse.json(todoWithId, { status: 200 });
   } catch (error) {
     console.error("Get todo error:", error);
     return NextResponse.json(
@@ -87,7 +97,7 @@ export async function PUT(
     const body = await req.json();
 
     // Find todo with ownership verification
-    const existingTodo = findTodoByIdAndUserId(todoId, payload.userId);
+    const existingTodo = await findTodoByIdAndUserId(todoId, payload.userId);
 
     if (!existingTodo) {
       return NextResponse.json(
@@ -112,7 +122,7 @@ export async function PUT(
     }
 
     // Update todo
-    const updatedTodo = updateTodo(todoId, payload.userId, updates);
+    const updatedTodo = await updateTodo(todoId, payload.userId, updates);
 
     if (!updatedTodo) {
       return NextResponse.json(
@@ -121,7 +131,17 @@ export async function PUT(
       );
     }
 
-    return NextResponse.json(updatedTodo, { status: 200 });
+    // Map _id to id for frontend compatibility
+    const todoWithId = {
+      id: updatedTodo._id,
+      userId: updatedTodo.userId,
+      text: updatedTodo.text,
+      completed: updatedTodo.completed,
+      priority: updatedTodo.priority,
+      createdAt: updatedTodo.createdAt,
+    };
+
+    return NextResponse.json(todoWithId, { status: 200 });
   } catch (error) {
     console.error("Update todo error:", error);
     return NextResponse.json(
@@ -162,7 +182,7 @@ export async function DELETE(
     const todoId = Number(id);
 
     // Find todo with ownership verification
-    const existingTodo = findTodoByIdAndUserId(todoId, payload.userId);
+    const existingTodo = await findTodoByIdAndUserId(todoId, payload.userId);
 
     if (!existingTodo) {
       return NextResponse.json(
@@ -172,7 +192,7 @@ export async function DELETE(
     }
 
     // Delete todo
-    const success = deleteTodo(todoId, payload.userId);
+    const success = await deleteTodo(todoId, payload.userId);
 
     if (!success) {
       return NextResponse.json(

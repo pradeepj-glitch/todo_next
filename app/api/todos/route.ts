@@ -26,9 +26,19 @@ export async function GET(req: NextRequest) {
     }
 
     // Get todos for this user only
-    const todos = getTodosByUserId(payload.userId);
+    const todos = await getTodosByUserId(payload.userId);
     
-    return NextResponse.json(todos, { status: 200 });
+    // Map _id to id for frontend compatibility
+    const todosWithId = todos.map(todo => ({
+      id: todo._id,
+      userId: todo.userId,
+      text: todo.text,
+      completed: todo.completed,
+      priority: todo.priority,
+      createdAt: todo.createdAt,
+    }));
+    
+    return NextResponse.json(todosWithId, { status: 200 });
   } catch (error) {
     console.error("Get todos error:", error);
     return NextResponse.json(
@@ -73,13 +83,23 @@ export async function POST(req: NextRequest) {
     }
 
     // Create todo for this user
-    const newTodo = createTodo(
+    const newTodo = await createTodo(
       payload.userId,
       text.trim(),
       (priority as Priority) ?? "medium"
     );
 
-    return NextResponse.json(newTodo, { status: 201 });
+    // Map _id to id for frontend compatibility
+    const todoWithId = {
+      id: newTodo._id,
+      userId: newTodo.userId,
+      text: newTodo.text,
+      completed: newTodo.completed,
+      priority: newTodo.priority,
+      createdAt: newTodo.createdAt,
+    };
+
+    return NextResponse.json(todoWithId, { status: 201 });
   } catch (error) {
     console.error("Create todo error:", error);
     return NextResponse.json(

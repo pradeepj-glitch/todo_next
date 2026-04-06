@@ -23,7 +23,7 @@ export async function POST(req: NextRequest) {
     }
 
     // Check if user already exists
-    const existingUser = findUserByEmail(email);
+    const existingUser = await findUserByEmail(email);
     if (existingUser) {
       return NextResponse.json(
         { error: "User with this email already exists" },
@@ -33,11 +33,11 @@ export async function POST(req: NextRequest) {
 
     // Hash password and create user
     const hashedPassword = await hashPassword(password);
-    const user = createUser(email, hashedPassword, name);
+    const user = await createUser(email, hashedPassword, name);
 
     // Generate JWT token
     const token = generateToken({
-      userId: user.id,
+      userId: user._id,
       email: user.email,
     });
 
@@ -45,7 +45,7 @@ export async function POST(req: NextRequest) {
     const response = NextResponse.json(
       {
         message: "User registered successfully",
-        user: { id: user.id, email: user.email, name: user.name },
+        user: { id: user._id, email: user.email, name: user.name },
       },
       { status: 201 }
     );

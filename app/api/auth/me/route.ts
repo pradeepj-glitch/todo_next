@@ -25,7 +25,7 @@ export async function GET(req: NextRequest) {
     }
 
     // Find user by ID
-    const user = findUserById(payload.userId);
+    const user = await findUserById(payload.userId);
     
     if (!user) {
       return NextResponse.json(
@@ -38,7 +38,7 @@ export async function GET(req: NextRequest) {
     return NextResponse.json(
       {
         user: {
-          id: user.id,
+          id: user._id,
           email: user.email,
           name: user.name,
           createdAt: user.createdAt,
