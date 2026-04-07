@@ -82,11 +82,12 @@ export async function createUser(email: string, password: string, name: string, 
   }
 }
 
-export async function getAllUsers(): Promise<User[]> {
+export async function getAllUsers(includeDeleted: boolean = false): Promise<User[]> {
   try {
     const db = await getDatabase();
+    const filter = includeDeleted ? {} : { isDeleted: { $ne: true } };
     const users = await db.collection<User>('users')
-      .find({ isDeleted: { $ne: true } })
+      .find(filter)
       .sort({ createdAt: -1 })
       .toArray();
     return users;
