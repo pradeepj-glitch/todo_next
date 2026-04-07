@@ -7,7 +7,7 @@ export async function GET(req: NextRequest) {
   if (!await isAdmin(req)) return adminOnlyResponse();
 
   try {
-    const users = await getAllUsers();
+    const users = await getAllUsers(true);
     // Remove passwords from returned data
     const safeUsers = users.map((user: User) => {
       const { password, ...safe } = user;

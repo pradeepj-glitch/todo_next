@@ -1,7 +1,6 @@
-/* eslint-disable react-hooks/set-state-in-effect */
 "use client";
 
-import { useEffect, useState, useRef } from "react";
+import { useEffect, useState } from "react";
 import { useAuth, THEME_COLORS } from "../context/AuthContext";
 import { useRouter } from "next/navigation";
 import AdminOverview from "./components/AdminOverview";
@@ -16,24 +15,27 @@ export default function Home() {
   const router = useRouter();
 
   const [todos, setTodos] = useState<Todo[]>([]);
-  const [text, setText] = useState("");
-  const [priority, setPriority] = useState<Priority>("medium");
+
   const [filter, setFilter] = useState<Filter>("all");
   const [editingId, setEditingId] = useState<number | null>(null);
   const [editText, setEditText] = useState("");
   const [loading, setLoading] = useState(true);
-  const [adding, setAdding] = useState(false);
   const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
   
+  // Table sorting and pagination
+  const [taskSearch, setTaskSearch] = useState("");
+  const [taskSortField, setTaskSortField] = useState<keyof Todo>("dueDate");
+  const [taskSortDir, setTaskSortDir] = useState<"asc" | "desc">("asc");
+  const [taskPage, setTaskPage] = useState(1);
+  const tasksPerPage = 5;
+
   // Completion Modal States
   const [showCompletionModal, setShowCompletionModal] = useState(false);
   const [taskToComplete, setTaskToComplete] = useState<Todo | null>(null);
   const [completionMsg, setCompletionMsg] = useState("");
   const [completing, setCompleting] = useState(false);
 
-  const inputRef = useRef<HTMLInputElement>(null);
 
-  const theme = THEME_COLORS[themeColor];
   const isDark = darkMode;
 
   const colors = getThemeColors(darkMode, THEME_COLORS[themeColor].primary);
@@ -59,33 +61,6 @@ export default function Home() {
   };
 
   useEffect(() => { fetchTodos(); }, []);
-
-  const addTodo = async () => {
-    if (!text.trim()) return;
-    setAdding(true);
-    await fetch("/api/todos", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ 
-        userId: user?.id,
-        title: text.trim(), 
-        priority,
-        description: "Self-assigned task",
-        dueDate: new Date(Date.now() + 86400000 * 7).toISOString().split('T')[0], // Default 7 days
-        message: "Manually added from dashboard"
-      }),
-    });
-    setText("");
-    setPriority("medium");
-    await fetchTodos();
-    setAdding(false);
-    inputRef.current?.focus();
-  };
-
-  const deleteTodo = async (id: number) => {
-    setTodos(prev => prev.filter(t => t.id !== id));
-    await fetch(`/api/todos/${id}`, { method: "DELETE" });
-  };
 
   const toggleTodo = async (id: number) => {
     const todo = todos.find(t => t.id === id);
@@ -123,10 +98,6 @@ export default function Home() {
     }
   };
 
-  const startEdit = (todo: Todo) => {
-    setEditingId(todo.id!);
-    setEditText(todo.title);
-  };
 
   const saveEdit = async (id: number) => {
     if (!editText.trim()) return;
@@ -139,17 +110,32 @@ export default function Home() {
     });
   };
 
-  const clearCompleted = async () => {
-    const completed = todos.filter(t => t.completed);
-    setTodos(prev => prev.filter(t => !t.completed));
-    await Promise.all(completed.map(t => fetch(`/api/todos/${t.id}`, { method: "DELETE" })));
-  };
-
   const filteredTodos = todos.filter(t => {
     if (filter === "active") return !t.completed;
     if (filter === "completed") return t.completed;
     return true;
   });
+
+  const searchedTodos = filteredTodos.filter(t => t.title.toLowerCase().includes(taskSearch.toLowerCase()));
+  const sortedTodos = [...searchedTodos].sort((a, b) => {
+      let valA = a[taskSortField] ?? "";
+      let valB = b[taskSortField] ?? "";
+      if (valA < valB) return taskSortDir === "asc" ? -1 : 1;
+      if (valA > valB) return taskSortDir === "asc" ? 1 : -1;
+      return 0;
+  });
+  const totalTaskPages = Math.ceil(sortedTodos.length / tasksPerPage);
+  const currentTasks = sortedTodos.slice((taskPage - 1) * tasksPerPage, taskPage * tasksPerPage);
+
+  const handleTaskSort = (field: keyof Todo) => {
+    if (taskSortField === field) {
+      setTaskSortDir(taskSortDir === "asc" ? "desc" : "asc");
+    } else {
+      setTaskSortField(field);
+      setTaskSortDir("asc");
+      setTaskPage(1);
+    }
+  };
 
   const activeCount    = todos.filter(t => !t.completed).length;
   const completedCount = todos.filter(t =>  t.completed).length;
@@ -551,7 +537,55 @@ export default function Home() {
           font-weight: 600;
         }
 
-        /* ─── TODO LIST ───────────────────────────────────────── */
+        /* ─── TODO TABLE ───────────────────────────────────────── */
+        .search-area {
+          padding: 1rem 1.25rem;
+          border-bottom: 1px solid ${colors.border};
+        }
+        .search-input {
+          width: 100%;
+          padding: 10px 16px;
+          border-radius: 12px;
+          border: 1px solid ${colors.border};
+          background: ${colors.bg}50;
+          color: ${colors.text};
+          font-family: inherit;
+          font-size: 0.9rem;
+          outline: none;
+          transition: border-color 0.2s;
+        }
+        .search-input:focus { border-color: ${colors.accent}; background: ${colors.surface}; }
+
+        .table-wrap {
+          overflow-x: auto;
+        }
+        .task-table { width: 100%; border-collapse: collapse; text-align: left; }
+        .task-table th { 
+          padding: 14px 16px; 
+          border-bottom: 1px solid ${colors.border}; 
+          color: ${colors.textMuted}; 
+          font-weight: 600; 
+          font-size: 0.8rem; 
+          text-transform: uppercase; 
+          letter-spacing: 0.05em; 
+          cursor: pointer;
+          user-select: none;
+        }
+        .task-table th:hover { color: ${colors.text}; }
+        .task-table td { padding: 14px 16px; border-bottom: 1px solid ${colors.border}; color: ${colors.text}; font-size: 0.9rem; }
+        .task-table tr:last-child td { border-bottom: none; }
+        .task-table tr:hover td { background: ${colors.bg}50; }
+        .task-table tr.completed td { opacity: 0.6; }
+        
+        .sort-icon { font-size: 0.7rem; margin-left: 4px; }
+        
+        .pagination { display: flex; align-items: center; justify-content: space-between; padding: 16px 20px; border-top: 1px solid ${colors.border}; }
+        .page-info { font-size: 0.85rem; color: ${colors.textMuted}; }
+        .page-controls { display: flex; gap: 8px; }
+        .page-btn { padding: 6px 12px; border-radius: 8px; border: 1px solid ${colors.border}; background: transparent; color: ${colors.text}; font-size: 0.8rem; cursor: pointer; transition: all 0.2s;}
+        .page-btn:hover:not(:disabled) { border-color: ${colors.accent}; color: var(--accent); }
+        .page-btn:disabled { opacity: 0.5; cursor: not-allowed; }
+
         .todo-list {
           padding: 1rem 1.25rem;
           display: flex;
@@ -1037,100 +1071,144 @@ export default function Home() {
                         <button
                           key={f}
                           className={`filter-tab ${filter === f ? "active" : ""}`}
-                          onClick={() => setFilter(f)}
+                          onClick={() => { setFilter(f); setTaskPage(1); }}
                         >
                           {f.charAt(0).toUpperCase() + f.slice(1)}
                         </button>
                       ))}
                     </div>
 
-                    {/* List */}
-                    <div className="todo-list">
+                    <div className="search-area">
+                      <input 
+                        type="text" 
+                        placeholder="Search tasks..." 
+                        className="search-input"
+                        value={taskSearch}
+                        onChange={e => { setTaskSearch(e.target.value); setTaskPage(1); }}
+                      />
+                    </div>
+
+                    {/* Table */}
+                    <div className="table-wrap">
                       {loading ? (
                         <div className="empty-state">
                           <div className="empty-icon">⏳</div>
                           <p>Loading tasks…</p>
                         </div>
-                      ) : filteredTodos.length === 0 ? (
+                      ) : searchedTodos.length === 0 ? (
                         <div className="empty-state">
                           <div className="empty-icon">📋</div>
-                          <p>No {filter} tasks yet</p>
+                          <p>No tasks found.</p>
                         </div>
-                      ) : filteredTodos.map((todo) => (
-                        <div
-                          key={todo.id}
-                          className={`todo-item ${todo.completed ? "completed" : ""}`}
-                          style={{ ['--item-border' as string]: PRIORITY_CONFIG[todo.priority].color }}
-                        >
-                          <div
-                            className={`todo-check ${todo.completed ? "checked" : ""}`}
-                            style={{ cursor: todo.completed ? 'default' : 'pointer' }}
-                            onClick={() => !todo.completed && toggleTodo(todo.id!)}
-                          >
-                            {todo.completed && (
-                              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="3.5">
-                                <polyline points="20 6 9 17 4 12" />
-                              </svg>
-                            )}
-                          </div>
+                      ) : (
+                        <>
+                          <table className="task-table">
+                            <thead>
+                              <tr>
+                                <th style={{ width: '40px' }}></th>
+                                <th onClick={() => handleTaskSort('title')}>
+                                  Title {taskSortField === 'title' && <span className="sort-icon">{taskSortDir === 'asc' ? '▲' : '▼'}</span>}
+                                </th>
+                                <th onClick={() => handleTaskSort('priority')}>
+                                  Priority {taskSortField === 'priority' && <span className="sort-icon">{taskSortDir === 'asc' ? '▲' : '▼'}</span>}
+                                </th>
+                                <th onClick={() => handleTaskSort('dueDate')}>
+                                  Due Date {taskSortField === 'dueDate' && <span className="sort-icon">{taskSortDir === 'asc' ? '▲' : '▼'}</span>}
+                                </th>
+                                <th>Status</th>
+                              </tr>
+                            </thead>
+                            <tbody>
+                              {currentTasks.map((todo) => (
+                                <tr key={todo.id} className={todo.completed ? 'completed' : ''}>
+                                  <td>
+                                    <div
+                                      className={`todo-check ${todo.completed ? "checked" : ""}`}
+                                      style={{ cursor: todo.completed ? 'default' : 'pointer', background: todo.completed ? 'var(--accent)' : 'transparent' }}
+                                      onClick={() => !todo.completed && toggleTodo(todo.id!)}
+                                    >
+                                      {todo.completed && (
+                                        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="3.5">
+                                          <polyline points="20 6 9 17 4 12" />
+                                        </svg>
+                                      )}
+                                    </div>
+                                  </td>
+                                  <td>
+                                    <div style={{ fontWeight: 600, fontSize: '0.95rem' }}>{todo.title}</div>
+                                    {todo.description && (
+                                      <div style={{ fontSize: '0.78rem', color: colors.textMuted, marginTop: '2px' }}>
+                                        {todo.description}
+                                      </div>
+                                    )}
+                                    {todo.message && (
+                                      <div style={{ marginTop: '6px', padding: '4px 8px', background: 'rgba(99, 102, 241, 0.05)', borderRadius: '6px', fontSize: '0.75rem', borderLeft: '2px solid var(--accent)' }}>
+                                        <strong style={{ color: colors.accent }}>Admin:</strong> {todo.message}
+                                      </div>
+                                    )}
+                                    {todo.completionMessage && (
+                                      <div style={{ marginTop: '6px', padding: '4px 8px', background: 'rgba(34, 197, 94, 0.05)', borderRadius: '6px', fontSize: '0.75rem', borderLeft: '2px solid #22c55e', color: '#166534' }}>
+                                        <strong style={{ color: '#22c55e' }}>Note:</strong> {todo.completionMessage}
+                                      </div>
+                                    )}
+                                  </td>
+                                  <td>
+                                    <span style={{ 
+                                      display: 'inline-flex', alignItems: 'center', gap: '6px', 
+                                      fontSize: '0.75rem', fontWeight: 600, padding: '4px 8px', borderRadius: '999px',
+                                      background: PRIORITY_CONFIG[todo.priority].color + '20',
+                                      color: PRIORITY_CONFIG[todo.priority].color,
+                                      border: `1px solid ${PRIORITY_CONFIG[todo.priority].color}40`,
+                                      textTransform: 'capitalize'
+                                    }}>
+                                      {todo.priority}
+                                    </span>
+                                  </td>
+                                  <td>
+                                    <span style={{ fontSize: '0.8rem', color: colors.textMuted }}>
+                                      {new Date(todo.dueDate).toLocaleDateString()}
+                                    </span>
+                                    <div style={{ fontSize: '0.7rem', color: colors.textSub, marginTop: '2px' }}>
+                                      By: {todo.assignedByName}
+                                    </div>
+                                  </td>
+                                  <td>
+                                    {todo.completed ? (
+                                      <span style={{ color: '#16a34a', fontWeight: 600, fontSize: '0.8rem' }}>Completed</span>
+                                    ) : (
+                                      <span style={{ color: colors.textMuted, fontSize: '0.8rem' }}>Pending</span>
+                                    )}
+                                  </td>
+                                </tr>
+                              ))}
+                            </tbody>
+                          </table>
 
-                          <div className="todo-content" style={{ flex: 1 }}>
-                            {editingId === todo.id ? (
-                              <input
-                                className="edit-input"
-                                value={editText}
-                                autoFocus
-                                onChange={(e) => setEditText(e.target.value)}
-                                onKeyDown={(e) => {
-                                  if (e.key === "Enter") saveEdit(todo.id!);
-                                  if (e.key === "Escape") setEditingId(null);
-                                }}
-                              />
-                            ) : (
-                              <>
-                                <div className={`todo-title ${todo.completed ? "done" : ""}`} style={{ fontWeight: 600, fontSize: '0.95rem' }}>
-                                  {todo.title}
-                                </div>
-                                {todo.description && (
-                                  <div className="todo-desc" style={{ fontSize: '0.78rem', color: colors.textMuted, marginTop: '2px' }}>
-                                    {todo.description}
-                                  </div>
-                                )}
-                                <div className="todo-meta" style={{ display: 'flex', gap: '12px', marginTop: '6px', fontSize: '0.72rem', color: colors.textSub }}>
-                                  <span title="Due Date">📅 {new Date(todo.dueDate).toLocaleDateString()}</span>
-                                  <span title="Assigned By">👤 {todo.assignedByName}</span>
-                                </div>
-                                {todo.message && (
-                                  <div className="todo-admin-msg" style={{ marginTop: '8px', padding: '6px 10px', background: 'rgba(99, 102, 241, 0.05)', borderRadius: '8px', fontSize: '0.75rem', borderLeft: '2px solid var(--accent)' }}>
-                                    <strong style={{ color: colors.accent }}>Admin Message:</strong> {todo.message}
-                                  </div>
-                                )}
-                                {todo.completionMessage && (
-                                  <div className="todo-complete-msg" style={{ marginTop: '8px', padding: '6px 10px', background: 'rgba(34, 197, 94, 0.05)', borderRadius: '8px', fontSize: '0.75rem', borderLeft: '2px solid #22c55e', color: '#166534' }}>
-                                    <strong style={{ color: '#22c55e' }}>Your Completion Note:</strong> {todo.completionMessage}
-                                  </div>
-                                )}
-                              </>
-                            )}
-                          </div>
-
-                          {user?.role === 'admin' && !todo.completed && (
-                            <div className="item-actions">
-                              {editingId === todo.id ? (
-                                <button className="icon-btn" onClick={() => saveEdit(todo.id!)}>✓</button>
-                              ) : (
-                                <button className="icon-btn" onClick={() => startEdit(todo)}>✎</button>
-                              )}
-                              <button className="icon-btn" onClick={() => deleteTodo(todo.id!)}>✕</button>
+                          {totalTaskPages > 0 && (
+                            <div className="pagination">
+                              <div className="page-info">
+                                Showing {(taskPage - 1) * tasksPerPage + 1} to {Math.min(taskPage * tasksPerPage, searchedTodos.length)} of {searchedTodos.length} tasks
+                              </div>
+                              <div className="page-controls">
+                                <button 
+                                  className="page-btn" 
+                                  disabled={taskPage === 1}
+                                  onClick={() => setTaskPage(prev => prev - 1)}
+                                >
+                                  Prev
+                                </button>
+                                <button 
+                                  className="page-btn" 
+                                  disabled={taskPage === totalTaskPages}
+                                  onClick={() => setTaskPage(prev => prev + 1)}
+                                >
+                                  Next
+                                </button>
+                              </div>
                             </div>
                           )}
-
-                          <span
-                            className="priority-pip"
-                            style={{ background: PRIORITY_CONFIG[todo.priority].color }}
-                          />
-                        </div>
-                      ))}
+                        </>
+                      )}
                     </div>
                   </div>
                 </div>
@@ -1158,18 +1236,6 @@ export default function Home() {
                         </div>
                       );
                     })}
-                  </div>
-
-                  {/* Actions */}
-                  <div className="sidebar-card">
-                    <div className="sidebar-label">Actions</div>
-                    <button
-                      className={`clear-btn ${completedCount > 0 ? 'has-completed' : 'none'}`}
-                      onClick={clearCompleted}
-                      disabled={completedCount === 0}
-                    >
-                      🗑 Clear Completed ({completedCount})
-                    </button>
                   </div>
                 </div>
               </>
