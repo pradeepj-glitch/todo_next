@@ -1295,7 +1295,7 @@ export default function Home() {
                 onClick={handleCompleteTask}
                 disabled={!completionMsg.trim() || completing}
               >
-                {completing ? 'Completing...' : 'Mark as Completed'}
+                {completing ? 'Completing.....' : 'Mark as Completed'}
               </button>
             </div>
           </div>
