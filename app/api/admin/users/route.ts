@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-unused-vars */
 import { NextRequest, NextResponse } from "next/server";
 import { isAdmin, adminOnlyResponse } from "@/lib/admin-check";
 import { getAllUsers, updateUser } from "@/lib/db";

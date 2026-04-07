@@ -7,6 +7,7 @@ interface User {
   id: number;
   name: string;
   email: string;
+  isDeleted?: boolean;
 }
 
 interface Todo {
@@ -90,8 +91,9 @@ export default function AdminTasksPage() {
     if (searchQuery.length >= 2) {
       const filtered = users.filter(
         (u) =>
-          u.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-          u.email.toLowerCase().includes(searchQuery.toLowerCase()),
+          !u.isDeleted &&
+          (u.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+          u.email.toLowerCase().includes(searchQuery.toLowerCase())),
       );
       setSearchResults(filtered);
     } else {

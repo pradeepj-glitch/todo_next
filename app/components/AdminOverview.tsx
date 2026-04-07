@@ -1,3 +1,5 @@
+/* eslint-disable react-hooks/exhaustive-deps */
+/* eslint-disable @typescript-eslint/no-explicit-any */
 "use client";
 
 import React, { useEffect, useState } from "react";
@@ -62,9 +64,12 @@ export default function AdminOverview() {
         const allTodos = await todosRes.json();
         
         const processedUsers = userData
+           
           .filter((u: any) => u.id !== authUser?.id) // Filter out the current admin
+           
           .map((u: any) => {
             const userTodos = allTodos.filter((t: any) => t.userId === u.id);
+             
             const completed = userTodos.filter((t: any) => t.completed).length;
             const total = userTodos.length;
             const pct = total > 0 ? Math.round((completed / total) * 100) : 0;
@@ -159,17 +164,19 @@ export default function AdminOverview() {
   };
 
   const matchingUsers = assignSearch.length >= 2 
-    ? users.filter(u => u.name.toLowerCase().includes(assignSearch.toLowerCase()) || u.email.toLowerCase().includes(assignSearch.toLowerCase()))
+    ? users.filter(u => !u.isDeleted && (u.name.toLowerCase().includes(assignSearch.toLowerCase()) || u.email.toLowerCase().includes(assignSearch.toLowerCase())))
     : [];
 
-  const searchedAdminUsers = users.filter(u => 
-    u.name.toLowerCase().includes(adminUserSearch.toLowerCase()) || 
-    u.email.toLowerCase().includes(adminUserSearch.toLowerCase())
-  );
+  const searchedAdminUsers = users.filter(u => {
+    const statusText = u.isDeleted ? "inactive" : "active";
+    return u.name.toLowerCase().includes(adminUserSearch.toLowerCase()) || 
+           u.email.toLowerCase().includes(adminUserSearch.toLowerCase()) ||
+           statusText.includes(adminUserSearch.toLowerCase());
+  });
   
   const sortedAdminUsers = [...searchedAdminUsers].sort((a, b) => {
-    let valA = a[adminUserSortField];
-    let valB = b[adminUserSortField];
+    const valA = a[adminUserSortField];
+    const valB = b[adminUserSortField];
     if (valA < valB) return adminUserSortDir === "asc" ? -1 : 1;
     if (valA > valB) return adminUserSortDir === "asc" ? 1 : -1;
     return 0;
@@ -391,7 +398,7 @@ export default function AdminOverview() {
                     <th onClick={() => handleAdminUserSort('pct')}>
                       Progress {adminUserSortField === 'pct' && <span className="sort-icon">{adminUserSortDir === 'asc' ? '▲' : '▼'}</span>}
                     </th>
-                    <th>Status</th>
+                    <th onClick={() => handleAdminUserSort('completed')}> Status   {adminUserSortField === 'pct' && <span className="sort-icon">{adminUserSortDir === 'asc' ? '▲' : '▼'}</span>} </th>
                     <th>Actions</th>
                   </tr>
                 </thead>
