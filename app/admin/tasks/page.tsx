@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useEffect, useState, useRef } from "react";
+import React, { useEffect, useState } from "react";
 import { useAuth, THEME_COLORS } from "@/context/AuthContext";
 
 interface User {
@@ -15,7 +15,7 @@ interface Todo {
   title: string;
   description: string;
   completed: boolean;
-  priority: 'low' | 'medium' | 'high';
+  priority: "low" | "medium" | "high";
   dueDate: string;
   assignedByName: string;
   message: string;
@@ -28,17 +28,21 @@ export default function AdminTasksPage() {
   const [searchQuery, setSearchQuery] = useState("");
   const [searchResults, setSearchResults] = useState<User[]>([]);
   const [selectedUser, setSelectedUser] = useState<User | null>(null);
-  
+
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
-  const [priority, setPriority] = useState<'low' | 'medium' | 'high'>("medium");
+  const [priority, setPriority] = useState<"low" | "medium" | "high">("medium");
   const [dueDate, setDueDate] = useState("");
   const [message, setMessage] = useState("");
-  
+
   const [allTodos, setAllTodos] = useState<Todo[]>([]);
   const [loading, setLoading] = useState(true);
   const [assigning, setAssigning] = useState(false);
-  
+  const [toast, setToast] = useState<{
+    type: "success" | "error";
+    text: string;
+  } | null>(null);
+
   const theme = THEME_COLORS[themeColor];
   const isDark = darkMode;
 
@@ -84,9 +88,10 @@ export default function AdminTasksPage() {
 
   useEffect(() => {
     if (searchQuery.length >= 2) {
-      const filtered = users.filter(u => 
-        u.name.toLowerCase().includes(searchQuery.toLowerCase()) || 
-        u.email.toLowerCase().includes(searchQuery.toLowerCase())
+      const filtered = users.filter(
+        (u) =>
+          u.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+          u.email.toLowerCase().includes(searchQuery.toLowerCase()),
       );
       setSearchResults(filtered);
     } else {
@@ -109,8 +114,8 @@ export default function AdminTasksPage() {
           description,
           priority,
           dueDate,
-          message
-        })
+          message,
+        }),
       });
 
       if (res.ok) {
@@ -122,7 +127,10 @@ export default function AdminTasksPage() {
         setSelectedUser(null);
         setSearchQuery("");
         fetchAllTodos();
-        alert("Task assigned successfully!");
+        setToast({
+          type: "success",
+          text: "Task assigned successfully",
+        });
       }
     } catch (error) {
       console.error("Failed to assign task:", error);
@@ -132,74 +140,252 @@ export default function AdminTasksPage() {
   };
 
   // Group todos by user for progress tracking
-  const userProgress = users.map(u => {
-    const userTodos = allTodos.filter(t => t.userId === u.id);
-    const completed = userTodos.filter(t => t.completed).length;
-    const total = userTodos.length;
-    const pct = total > 0 ? Math.round((completed / total) * 100) : 0;
-    return { ...u, completed, total, pct, tasks: userTodos };
-  }).filter(u => u.total > 0);
+  const userProgress = users
+    .map((u) => {
+      const userTodos = allTodos.filter((t) => t.userId === u.id);
+      const completed = userTodos.filter((t) => t.completed).length;
+      const total = userTodos.length;
+      const pct = total > 0 ? Math.round((completed / total) * 100) : 0;
+      return { ...u, completed, total, pct, tasks: userTodos };
+    })
+    .filter((u) => u.total > 0);
 
   return (
     <>
       <style jsx>{`
-        .admin-tasks { display: grid; grid-template-columns: 350px 1fr; gap: 2rem; align-items: start; }
-        @media (max-width: 1024px) { .admin-tasks { grid-template-columns: 1fr; } }
+        .admin-tasks {
+          display: grid;
+          grid-template-columns: 350px 1fr;
+          gap: 2rem;
+          align-items: start;
+        }
+        @media (max-width: 1024px) {
+          .admin-tasks {
+            grid-template-columns: 1fr;
+          }
+        }
 
-        .assignment-panel { background: ${colors.surface}; border: 1px solid ${colors.border}; border-radius: 24px; padding: 1.5rem; position: sticky; top: 2rem; }
-        .panel-title { font-family: 'Syne', sans-serif; font-size: 1.2rem; font-weight: 700; margin-bottom: 1.25rem; color: ${colors.text}; }
+        .assignment-panel {
+          background: ${colors.surface};
+          border: 1px solid ${colors.border};
+          border-radius: 24px;
+          padding: 1.5rem;
+          position: sticky;
+          top: 2rem;
+        }
+        .panel-title {
+          font-family: "Syne", sans-serif;
+          font-size: 1.2rem;
+          font-weight: 700;
+          margin-bottom: 1.25rem;
+          color: ${colors.text};
+        }
 
-        .form-group { margin-bottom: 1.25rem; }
-        .label { display: block; font-size: 0.8rem; font-weight: 600; color: ${colors.textMuted}; margin-bottom: 6px; text-transform: uppercase; letter-spacing: 0.05em; }
-        
-        .input, .textarea, .select { 
-          width: 100%; border: 1px solid ${colors.border}; border-radius: 12px; padding: 10px 14px; 
-          background: ${colors.bg}50; color: ${colors.text}; font-family: inherit; font-size: 0.9rem; outline: none;
+        .form-group {
+          margin-bottom: 1.25rem;
+        }
+        .label {
+          display: block;
+          font-size: 0.8rem;
+          font-weight: 600;
+          color: ${colors.textMuted};
+          margin-bottom: 6px;
+          text-transform: uppercase;
+          letter-spacing: 0.05em;
+        }
+
+        .input,
+        .textarea,
+        .select {
+          width: 100%;
+          border: 1px solid ${colors.border};
+          border-radius: 12px;
+          padding: 10px 14px;
+          background: ${colors.bg}50;
+          color: ${colors.text};
+          font-family: inherit;
+          font-size: 0.9rem;
+          outline: none;
           transition: all 0.2s;
         }
-        .input:focus, .textarea:focus, .select:focus { border-color: ${colors.accent}; background: ${colors.surface}; }
-
-        .search-wrap { position: relative; }
-        .search-results { 
-          position: absolute; top: 100%; left: 0; right: 0; background: ${colors.surface}; 
-          border: 1px solid ${colors.border}; border-radius: 12px; margin-top: 4px; 
-          box-shadow: 0 10px 30px rgba(0,0,0,0.15); z-index: 10; max-height: 200px; overflow-y: auto;
-        }
-        .search-item { padding: 10px 14px; cursor: pointer; border-bottom: 1px solid ${colors.border}; transition: background 0.2s; }
-        .search-item:hover { background: ${colors.bg}; }
-        .search-item:last-child { border-bottom: none; }
-        .selected-badge { 
-          background: ${colors.accent}15; color: ${colors.accent}; border: 1px solid ${colors.accent}30; 
-          border-radius: 8px; padding: 6px 12px; font-size: 0.85rem; font-weight: 600; 
-          display: flex; align-items: center; justify-content: space-between; margin-top: 8px;
+        .input:focus,
+        .textarea:focus,
+        .select:focus {
+          border-color: ${colors.accent};
+          background: ${colors.surface};
         }
 
-        .assign-btn { 
-          width: 100%; background: ${colors.accent}; color: white; border: none; 
-          border-radius: 12px; padding: 12px; font-weight: 700; cursor: pointer; 
-          transition: all 0.2s; box-shadow: 0 4px 12px ${colors.accent}40; margin-top: 0.5rem;
+        .search-wrap {
+          position: relative;
         }
-        .assign-btn:hover:not(:disabled) { transform: translateY(-2px); box-shadow: 0 6px 20px ${colors.accent}60; }
-        .assign-btn:disabled { opacity: 0.5; cursor: not-allowed; }
+        .search-results {
+          position: absolute;
+          top: 100%;
+          left: 0;
+          right: 0;
+          background: ${colors.surface};
+          border: 1px solid ${colors.border};
+          border-radius: 12px;
+          margin-top: 4px;
+          box-shadow: 0 10px 30px rgba(0, 0, 0, 0.15);
+          z-index: 10;
+          max-height: 200px;
+          overflow-y: auto;
+        }
+        .search-item {
+          padding: 10px 14px;
+          cursor: pointer;
+          border-bottom: 1px solid ${colors.border};
+          transition: background 0.2s;
+        }
+        .search-item:hover {
+          background: ${colors.bg};
+        }
+        .search-item:last-child {
+          border-bottom: none;
+        }
+        .selected-badge {
+          background: ${colors.accent}15;
+          color: ${colors.accent};
+          border: 1px solid ${colors.accent}30;
+          border-radius: 8px;
+          padding: 6px 12px;
+          font-size: 0.85rem;
+          font-weight: 600;
+          display: flex;
+          align-items: center;
+          justify-content: space-between;
+          margin-top: 8px;
+        }
+
+        .assign-btn {
+          width: 100%;
+          background: ${colors.accent};
+          color: white;
+          border: none;
+          border-radius: 12px;
+          padding: 12px;
+          font-weight: 700;
+          cursor: pointer;
+          transition: all 0.2s;
+          box-shadow: 0 4px 12px ${colors.accent}40;
+          margin-top: 0.5rem;
+        }
+        .assign-btn:hover:not(:disabled) {
+          transform: translateY(-2px);
+          box-shadow: 0 6px 20px ${colors.accent}60;
+        }
+        .assign-btn:disabled {
+          opacity: 0.5;
+          cursor: not-allowed;
+        }
 
         /* Progress Side */
-        .progress-side { display: flex; flex-direction: column; gap: 1.5rem; }
-        .user-card { background: ${colors.surface}; border: 1px solid ${colors.border}; border-radius: 24px; padding: 1.5rem; }
-        .user-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 1.25rem; }
-        .user-name { font-weight: 700; font-family: 'Syne', sans-serif; font-size: 1.1rem; }
-        .progress-bar-wrap { height: 8px; background: ${colors.bg}; border-radius: 999px; overflow: hidden; margin: 10px 0; }
-        .progress-bar { height: 100%; background: ${colors.accent}; transition: width 0.6s ease; }
-        
-        .task-list { display: flex; flex-direction: column; gap: 10px; margin-top: 1rem; }
-        .task-item { 
-          padding: 10px 14px; border-radius: 12px; border: 1px solid ${colors.border}; 
-          background: ${colors.bg}30; display: flex; align-items: center; justify-content: space-between;
+        .progress-side {
+          display: flex;
+          flex-direction: column;
+          gap: 1.5rem;
         }
-        .task-item.done { opacity: 0.6; background: transparent; }
-        .task-title { font-size: 0.88rem; font-weight: 500; }
-        .task-meta { font-size: 0.72rem; color: ${colors.textMuted}; display: flex; gap: 10px; }
+        .user-card {
+          background: ${colors.surface};
+          border: 1px solid ${colors.border};
+          border-radius: 24px;
+          padding: 1.5rem;
+        }
+        .user-header {
+          display: flex;
+          align-items: center;
+          justify-content: space-between;
+          margin-bottom: 1.25rem;
+        }
+        .user-name {
+          font-weight: 700;
+          font-family: "Syne", sans-serif;
+          font-size: 1.1rem;
+        }
+        .progress-bar-wrap {
+          height: 8px;
+          background: ${colors.bg};
+          border-radius: 999px;
+          overflow: hidden;
+          margin: 10px 0;
+        }
+        .progress-bar {
+          height: 100%;
+          background: ${colors.accent};
+          transition: width 0.6s ease;
+        }
 
-        .empty-state { padding: 4rem; text-align: center; color: ${colors.textMuted}; background: ${colors.surface}; border-radius: 24px; border: 1px dashed ${colors.border}; }
+        .task-list {
+          display: flex;
+          flex-direction: column;
+          gap: 10px;
+          margin-top: 1rem;
+        }
+        .task-item {
+          padding: 10px 14px;
+          border-radius: 12px;
+          border: 1px solid ${colors.border};
+          background: ${colors.bg}30;
+          display: flex;
+          align-items: center;
+          justify-content: space-between;
+        }
+        .task-item.done {
+          opacity: 0.6;
+          background: transparent;
+        }
+        .task-title {
+          font-size: 0.88rem;
+          font-weight: 500;
+        }
+        .task-meta {
+          font-size: 0.72rem;
+          color: ${colors.textMuted};
+          display: flex;
+          gap: 10px;
+        }
+
+        .empty-state {
+          padding: 4rem;
+          text-align: center;
+          color: ${colors.textMuted};
+          background: ${colors.surface};
+          border-radius: 24px;
+          border: 1px dashed ${colors.border};
+        }
+
+        /* ── Toast Notification ── */
+        .pp-toast {
+          position: fixed;
+          top: 1.5rem;
+          right: 1.5rem;
+          padding: 0.875rem 1.25rem;
+          border-radius: 12px;
+          font-size: 0.875rem;
+          font-weight: 500;
+          display: flex;
+          align-items: center;
+          gap: 0.625rem;
+          z-index: 9999;
+          animation:
+            slideInRight 0.3s ease,
+            fadeOut 0.3s ease 1.7s forwards;
+          box-shadow: 0 8px 32px rgba(0, 0, 0, 0.15);
+          max-width: 360px;
+        }
+
+        .pp-toast.success {
+          background: ${isDark ? "#052e16" : "#f0fdf4"};
+          border: 1px solid ${isDark ? "#14532d" : "#bbf7d0"};
+          color: ${isDark ? "#4ade80" : "#16a34a"};
+        }
+
+        .pp-toast.error {
+          background: ${isDark ? "#2d0a0a" : "#fef2f2"};
+          border: 1px solid ${isDark ? "#7f1d1d" : "#fecaca"};
+          color: ${isDark ? "#f87171" : "#dc2626"};
+        }
       `}</style>
 
       <div className="admin-tasks">
@@ -210,19 +396,34 @@ export default function AdminTasksPage() {
             <div className="form-group">
               <label className="label">Search User</label>
               <div className="search-wrap">
-                <input 
-                  className="input" 
-                  placeholder="Type name or email..." 
+                <input
+                  className="input"
+                  placeholder="Type name or email..."
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
                   disabled={!!selectedUser}
                 />
                 {searchResults.length > 0 && (
                   <div className="search-results">
-                    {searchResults.map(u => (
-                      <div key={u.id} className="search-item" onClick={() => { setSelectedUser(u); setSearchResults([]); setSearchQuery(""); }}>
+                    {searchResults.map((u) => (
+                      <div
+                        key={u.id}
+                        className="search-item"
+                        onClick={() => {
+                          setSelectedUser(u);
+                          setSearchResults([]);
+                          setSearchQuery("");
+                        }}
+                      >
                         <div style={{ fontWeight: 600 }}>{u.name}</div>
-                        <div style={{ fontSize: '0.75rem', color: colors.textMuted }}>{u.email}</div>
+                        <div
+                          style={{
+                            fontSize: "0.75rem",
+                            color: colors.textMuted,
+                          }}
+                        >
+                          {u.email}
+                        </div>
                       </div>
                     ))}
                   </div>
@@ -231,25 +432,61 @@ export default function AdminTasksPage() {
               {selectedUser && (
                 <div className="selected-badge">
                   <span>👤 {selectedUser.name}</span>
-                  <button type="button" style={{ background: 'none', border: 'none', cursor: 'pointer', color: colors.accent, fontWeight: 'bold' }} onClick={() => setSelectedUser(null)}>✕</button>
+                  <button
+                    type="button"
+                    style={{
+                      background: "none",
+                      border: "none",
+                      cursor: "pointer",
+                      color: colors.accent,
+                      fontWeight: "bold",
+                    }}
+                    onClick={() => setSelectedUser(null)}
+                  >
+                    ✕
+                  </button>
                 </div>
               )}
             </div>
 
             <div className="form-group">
               <label className="label">Task Title</label>
-              <input className="input" placeholder="What needs to be done?" value={title} onChange={e => setTitle(e.target.value)} required />
+              <input
+                className="input"
+                placeholder="What needs to be done?"
+                value={title}
+                onChange={(e) => setTitle(e.target.value)}
+                required
+              />
             </div>
 
             <div className="form-group">
               <label className="label">Description</label>
-              <textarea className="textarea" rows={3} placeholder="Add details..." value={description} onChange={e => setDescription(e.target.value)} />
+              <textarea
+                className="textarea"
+                rows={3}
+                placeholder="Add details..."
+                value={description}
+                onChange={(e) => setDescription(e.target.value)}
+              />
             </div>
 
-            <div className="form-group" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
+            <div
+              className="form-group"
+              style={{
+                display: "grid",
+                gridTemplateColumns: "1fr 1fr",
+                gap: "10px",
+              }}
+            >
               <div>
                 <label className="label">Priority</label>
-                <select className="select" value={priority} onChange={e => setPriority(e.target.value as any)}>
+                <select
+                  className="select"
+                  value={priority}
+                  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                  onChange={(e) => setPriority(e.target.value as any)}
+                >
                   <option value="low">Low</option>
                   <option value="medium">Medium</option>
                   <option value="high">High</option>
@@ -257,16 +494,31 @@ export default function AdminTasksPage() {
               </div>
               <div>
                 <label className="label">Due Date</label>
-                <input className="input" type="date" value={dueDate} onChange={e => setDueDate(e.target.value)} required />
+                <input
+                  className="input"
+                  type="date"
+                  value={dueDate}
+                  onChange={(e) => setDueDate(e.target.value)}
+                  required
+                />
               </div>
             </div>
 
             <div className="form-group">
               <label className="label">Timeline Message / Note</label>
-              <input className="input" placeholder="Message for the user..." value={message} onChange={e => setMessage(e.target.value)} />
+              <input
+                className="input"
+                placeholder="Message for the user..."
+                value={message}
+                onChange={(e) => setMessage(e.target.value)}
+              />
             </div>
 
-            <button className="assign-btn" type="submit" disabled={assigning || !selectedUser}>
+            <button
+              className="assign-btn"
+              type="submit"
+              disabled={assigning || !selectedUser}
+            >
               {assigning ? "Assigning..." : "Assign Task"}
             </button>
           </form>
@@ -274,48 +526,79 @@ export default function AdminTasksPage() {
 
         {/* Right: Progress Tracking Side */}
         <section className="progress-side">
-          <h2 className="panel-title" style={{ marginBottom: '0.5rem' }}>User Progress Tracking</h2>
+          <h2 className="panel-title" style={{ marginBottom: "0.5rem" }}>
+            User Progress Tracking
+          </h2>
           {loading ? (
             <div className="empty-state">Loading tracking data...</div>
           ) : userProgress.length === 0 ? (
             <div className="empty-state">
-              <div style={{ fontSize: '2rem', marginBottom: '1rem' }}>📈</div>
+              <div style={{ fontSize: "2rem", marginBottom: "1rem" }}>📈</div>
               No tasks assigned to users yet.
             </div>
           ) : (
-            userProgress.map(u => (
+            userProgress.map((u) => (
               <div key={u.id} className="user-card">
                 <div className="user-header">
                   <div className="user-name">{u.name}</div>
-                  <div style={{ fontSize: '0.9rem', fontWeight: 600, color: colors.accent }}>{u.pct}% Complete</div>
+                  <div
+                    style={{
+                      fontSize: "0.9rem",
+                      fontWeight: 600,
+                      color: colors.accent,
+                    }}
+                  >
+                    {u.pct}% Complete
+                  </div>
                 </div>
                 <div className="progress-bar-wrap">
-                  <div className="progress-bar" style={{ width: `${u.pct}%` }} />
+                  <div
+                    className="progress-bar"
+                    style={{ width: `${u.pct}%` }}
+                  />
                 </div>
-                <div style={{ fontSize: '0.78rem', color: colors.textMuted }}>
+                <div style={{ fontSize: "0.78rem", color: colors.textMuted }}>
                   {u.completed} of {u.total} tasks completed
                 </div>
-                
+
                 <div className="task-list">
-                  {u.tasks.map(t => (
-                    <div key={t.id} className={`task-item ${t.completed ? 'done' : ''}`}>
+                  {u.tasks.map((t) => (
+                    <div
+                      key={t.id}
+                      className={`task-item ${t.completed ? "done" : ""}`}
+                    >
                       <div>
                         <div className="task-title">
                           {t.completed && "✓ "}
                           {t.title}
                         </div>
                         <div className="task-meta">
-                          <span>📅 {new Date(t.dueDate).toLocaleDateString()}</span>
-                          <span style={{ 
-                            color: t.priority === 'high' ? '#ef4444' : t.priority === 'medium' ? '#f59e0b' : '#22c55e',
-                            fontWeight: 600
-                          }}>
+                          <span>
+                            📅 {new Date(t.dueDate).toLocaleDateString()}
+                          </span>
+                          <span
+                            style={{
+                              color:
+                                t.priority === "high"
+                                  ? "#ef4444"
+                                  : t.priority === "medium"
+                                    ? "#f59e0b"
+                                    : "#22c55e",
+                              fontWeight: 600,
+                            }}
+                          >
                             {t.priority.toUpperCase()}
                           </span>
                         </div>
                       </div>
-                      <div style={{ fontSize: '0.72rem', fontStyle: 'italic', color: colors.textMuted }}>
-                        {t.completed ? 'Completed' : 'Pending'}
+                      <div
+                        style={{
+                          fontSize: "0.72rem",
+                          fontStyle: "italic",
+                          color: colors.textMuted,
+                        }}
+                      >
+                        {t.completed ? "Completed" : "Pending"}
                       </div>
                     </div>
                   ))}
@@ -325,6 +608,13 @@ export default function AdminTasksPage() {
           )}
         </section>
       </div>
+      {/* Toast Notification */}
+      {toast && (
+        <div className={`pp-toast ${toast.type}`}>
+          <span>{toast.type === "success" ? "✓" : "!"}</span>
+          {toast.text}
+        </div>
+      )}
     </>
   );
 }

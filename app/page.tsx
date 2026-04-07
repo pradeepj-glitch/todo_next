@@ -1,7 +1,6 @@
-/* eslint-disable react-hooks/set-state-in-effect */
 "use client";
 
-import { useEffect, useState, useRef } from "react";
+import { useEffect, useState } from "react";
 import { useAuth, THEME_COLORS } from "../context/AuthContext";
 import { useRouter } from "next/navigation";
 import AdminOverview from "./components/AdminOverview";
@@ -16,13 +15,11 @@ export default function Home() {
   const router = useRouter();
 
   const [todos, setTodos] = useState<Todo[]>([]);
-  const [text, setText] = useState("");
-  const [priority, setPriority] = useState<Priority>("medium");
+
   const [filter, setFilter] = useState<Filter>("all");
   const [editingId, setEditingId] = useState<number | null>(null);
   const [editText, setEditText] = useState("");
   const [loading, setLoading] = useState(true);
-  const [adding, setAdding] = useState(false);
   const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
   
   // Completion Modal States
@@ -31,9 +28,7 @@ export default function Home() {
   const [completionMsg, setCompletionMsg] = useState("");
   const [completing, setCompleting] = useState(false);
 
-  const inputRef = useRef<HTMLInputElement>(null);
 
-  const theme = THEME_COLORS[themeColor];
   const isDark = darkMode;
 
   const colors = getThemeColors(darkMode, THEME_COLORS[themeColor].primary);
@@ -59,33 +54,6 @@ export default function Home() {
   };
 
   useEffect(() => { fetchTodos(); }, []);
-
-  const addTodo = async () => {
-    if (!text.trim()) return;
-    setAdding(true);
-    await fetch("/api/todos", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ 
-        userId: user?.id,
-        title: text.trim(), 
-        priority,
-        description: "Self-assigned task",
-        dueDate: new Date(Date.now() + 86400000 * 7).toISOString().split('T')[0], // Default 7 days
-        message: "Manually added from dashboard"
-      }),
-    });
-    setText("");
-    setPriority("medium");
-    await fetchTodos();
-    setAdding(false);
-    inputRef.current?.focus();
-  };
-
-  const deleteTodo = async (id: number) => {
-    setTodos(prev => prev.filter(t => t.id !== id));
-    await fetch(`/api/todos/${id}`, { method: "DELETE" });
-  };
 
   const toggleTodo = async (id: number) => {
     const todo = todos.find(t => t.id === id);
@@ -123,10 +91,6 @@ export default function Home() {
     }
   };
 
-  const startEdit = (todo: Todo) => {
-    setEditingId(todo.id!);
-    setEditText(todo.title);
-  };
 
   const saveEdit = async (id: number) => {
     if (!editText.trim()) return;
@@ -137,12 +101,6 @@ export default function Home() {
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ title: editText.trim() }),
     });
-  };
-
-  const clearCompleted = async () => {
-    const completed = todos.filter(t => t.completed);
-    setTodos(prev => prev.filter(t => !t.completed));
-    await Promise.all(completed.map(t => fetch(`/api/todos/${t.id}`, { method: "DELETE" })));
   };
 
   const filteredTodos = todos.filter(t => {
@@ -1113,18 +1071,6 @@ export default function Home() {
                               </>
                             )}
                           </div>
-
-                          {user?.role === 'admin' && !todo.completed && (
-                            <div className="item-actions">
-                              {editingId === todo.id ? (
-                                <button className="icon-btn" onClick={() => saveEdit(todo.id!)}>✓</button>
-                              ) : (
-                                <button className="icon-btn" onClick={() => startEdit(todo)}>✎</button>
-                              )}
-                              <button className="icon-btn" onClick={() => deleteTodo(todo.id!)}>✕</button>
-                            </div>
-                          )}
-
                           <span
                             className="priority-pip"
                             style={{ background: PRIORITY_CONFIG[todo.priority].color }}
@@ -1158,18 +1104,6 @@ export default function Home() {
                         </div>
                       );
                     })}
-                  </div>
-
-                  {/* Actions */}
-                  <div className="sidebar-card">
-                    <div className="sidebar-label">Actions</div>
-                    <button
-                      className={`clear-btn ${completedCount > 0 ? 'has-completed' : 'none'}`}
-                      onClick={clearCompleted}
-                      disabled={completedCount === 0}
-                    >
-                      🗑 Clear Completed ({completedCount})
-                    </button>
                   </div>
                 </div>
               </>

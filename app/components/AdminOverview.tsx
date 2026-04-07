@@ -16,7 +16,7 @@ interface UserWithProgress {
 }
 
 export default function AdminOverview() {
-  const { user: authUser, themeColor, darkMode } = useAuth();
+  const { user: authUser, darkMode } = useAuth();
   const [users, setUsers] = useState<UserWithProgress[]>([]);
   const [loading, setLoading] = useState(true);
   const [expandedUserId, setExpandedUserId] = useState<number | null>(null);
@@ -31,8 +31,13 @@ export default function AdminOverview() {
   const [assignDueDate, setAssignDueDate] = useState("");
   const [assignMessage, setAssignMessage] = useState("");
   const [assigning, setAssigning] = useState(false);
+    const [toast, setToast] = useState<{
+      type: "success" | "error";
+      text: string;
+    } | null>(null);
   
   const colors = getThemeColors(darkMode);
+   const isDark = darkMode;
 
   const fetchData = async () => {
     try {
@@ -46,9 +51,13 @@ export default function AdminOverview() {
         const allTodos = await todosRes.json();
         
         const processedUsers = userData
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
           .filter((u: any) => u.id !== authUser?.id) // Filter out the current admin
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
           .map((u: any) => {
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
             const userTodos = allTodos.filter((t: any) => t.userId === u.id);
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
             const completed = userTodos.filter((t: any) => t.completed).length;
             const total = userTodos.length;
             const pct = total > 0 ? Math.round((completed / total) * 100) : 0;
@@ -66,6 +75,7 @@ export default function AdminOverview() {
 
   useEffect(() => {
     fetchData();
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [authUser]);
 
   const handleUpdateTodo = async (e: React.FormEvent) => {
@@ -116,7 +126,11 @@ export default function AdminOverview() {
         setAssignUser(null);
         setAssignSearch("");
         fetchData();
-        alert("Task assigned successfully!");
+         setToast({
+          type: "success",
+          text: "Task assigned successfully",
+        });
+             setTimeout(() => setToast(null), 2000);
       }
     } catch (error) {
       console.error("Failed to assign task:", error);
@@ -204,6 +218,40 @@ export default function AdminOverview() {
           width: 90%; max-width: 450px; z-index: 1000; box-shadow: 0 20px 40px rgba(0,0,0,0.2);
         }
         .form-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.5); z-index: 999; backdrop-filter: blur(2px); }
+
+
+        /* ── Toast Notification ── */
+        .pp-toast {
+          position: fixed;
+          top: 1.5rem;
+          right: 1.5rem;
+          padding: 0.875rem 1.25rem;
+          border-radius: 12px;
+          font-size: 0.875rem;
+          font-weight: 500;
+          display: flex;
+          align-items: center;
+          gap: 0.625rem;
+          z-index: 9999;
+          animation:
+            slideInRight 0.3s ease,
+            fadeOut 0.3s ease 1.7s forwards;
+          box-shadow: 0 8px 32px rgba(0, 0, 0, 0.15);
+          max-width: 360px;
+        }
+
+        .pp-toast.success {
+          background: ${isDark ? "#052e16" : "#f0fdf4"};
+          border: 1px solid ${isDark ? "#14532d" : "#bbf7d0"};
+          color: ${isDark ? "#4ade80" : "#16a34a"};
+        }
+
+        .pp-toast.error {
+          background: ${isDark ? "#2d0a0a" : "#fef2f2"};
+          border: 1px solid ${isDark ? "#7f1d1d" : "#fecaca"};
+          color: ${isDark ? "#f87171" : "#dc2626"};
+        }
+
       `}</style>
 
       <div className="dashboard-grid">
@@ -251,6 +299,7 @@ export default function AdminOverview() {
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
               <div className="form-group">
                 <label className="label">Priority</label>
+                {/* eslint-disable-next-line @typescript-eslint/no-explicit-any */}
                 <select className="select" value={assignPriority} onChange={e => setAssignPriority(e.target.value as any)}>
                   <option value="low">Low</option>
                   <option value="medium">Medium</option>
@@ -401,6 +450,14 @@ export default function AdminOverview() {
           </form>
         </>
       )}
+         {/* Toast Notification */}
+      {toast && (
+        <div className={`pp-toast ${toast.type}`}>
+          <span>{toast.type === 'success' ? '✓' : '!'}</span>
+          {toast.text}
+        </div>
+      )}
+
     </div>
   );
 }

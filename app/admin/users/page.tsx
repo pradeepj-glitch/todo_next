@@ -2,7 +2,6 @@
 
 import React, { useEffect, useState } from "react";
 import { useAuth, THEME_COLORS } from "@/context/AuthContext";
-import { useRouter } from "next/navigation";
 
 interface User {
   id: number;
@@ -15,7 +14,6 @@ interface User {
 
 export default function UsersPage() {
   const { user: authUser, themeColor, darkMode } = useAuth();
-  const router = useRouter();
   const [users, setUsers] = useState<User[]>([]);
   const [loading, setLoading] = useState(true);
   const [actionLoading, setActionLoading] = useState<number | null>(null);
