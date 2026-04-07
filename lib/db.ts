@@ -1,5 +1,6 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import type { User } from './auth';
-import type { Priority, Todo } from './types';
+import type { Connection, ConnectionRequest, Conversation, Message, Priority, Todo } from './types';
 import { MongoClient, Db } from 'mongodb';
 
 const MONGODB_URI = process.env.MONGODB_URI;
@@ -191,7 +192,6 @@ export async function createTodo(params: CreateTodoParams): Promise<Todo> {
 export async function updateTodo(id: number, userId: number, updates: Partial<Omit<Todo, '_id' | 'userId' | 'createdAt'>>): Promise<Todo | null> {
   try {
     const db = await getDatabase();
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const updateOps: any = {};
     
     if (updates.title !== undefined) updateOps.title = updates.title;
@@ -240,7 +240,6 @@ export async function deleteTodo(id: number, userId: number): Promise<boolean> {
 export async function updateUser(id: number, updates: Partial<Omit<User, '_id' | 'createdAt'>>): Promise<User | null> {
   try {
     const db = await getDatabase();
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const updateOps: any = {};
     
     if (updates.name !== undefined) updateOps.name = updates.name;
@@ -265,6 +264,219 @@ export async function updateUser(id: number, updates: Partial<Omit<User, '_id' |
     console.error('Error updating user:', error);
     return null;
   }
+}
+
+function newId() {
+  return Date.now() + Math.floor(Math.random() * 1000);
+}
+
+function normalizePair(a: number, b: number) {
+  return a < b ? [a, b] as const : [b, a] as const;
+}
+
+export async function searchUsersForUser(query: string, currentUserId: number): Promise<User[]> {
+  try {
+    const db = await getDatabase();
+    const users = await db.collection<User>('users')
+      .find({
+        isDeleted: { $ne: true },
+        _id: { $ne: currentUserId },
+        $or: [
+          { name: { $regex: query, $options: 'i' } },
+          { email: { $regex: query, $options: 'i' } }
+        ]
+      })
+      .limit(10)
+      .toArray();
+    return users;
+  } catch (error) {
+    console.error('Error searching users for user:', error);
+    return [];
+  }
+}
+
+export async function areUsersConnected(userId1: number, userId2: number): Promise<boolean> {
+  try {
+    const db = await getDatabase();
+    const [userIdA, userIdB] = normalizePair(userId1, userId2);
+    const existing = await db.collection<Connection>('connections').findOne({ userIdA, userIdB });
+    return !!existing;
+  } catch (error) {
+    console.error('Error checking connection:', error);
+    return false;
+  }
+}
+
+export async function createConnectionRequest(fromUserId: number, toUserId: number): Promise<ConnectionRequest> {
+  const db = await getDatabase();
+  // Idempotency guard: if a pending request exists already, return it.
+  const existing = await db.collection<ConnectionRequest>('connection_requests')
+    .findOne({ fromUserId, toUserId, status: 'pending' });
+  if (existing) return existing;
+
+  const reqDoc: ConnectionRequest = {
+    _id: newId(),
+    fromUserId,
+    toUserId,
+    status: 'pending',
+    createdAt: new Date().toISOString(),
+  };
+  await db.collection<ConnectionRequest>('connection_requests').insertOne(reqDoc);
+  return reqDoc;
+}
+
+export async function getIncomingRequests(userId: number): Promise<ConnectionRequest[]> {
+  try {
+    const db = await getDatabase();
+    return await db.collection<ConnectionRequest>('connection_requests')
+      .find({ toUserId: userId, status: 'pending' })
+      .sort({ createdAt: -1 })
+      .toArray();
+  } catch (error) {
+    console.error('Error getting incoming requests:', error);
+    return [];
+  }
+}
+
+export async function getOutgoingRequests(userId: number): Promise<ConnectionRequest[]> {
+  try {
+    const db = await getDatabase();
+    return await db.collection<ConnectionRequest>('connection_requests')
+      .find({ fromUserId: userId, status: 'pending' })
+      .sort({ createdAt: -1 })
+      .toArray();
+  } catch (error) {
+    console.error('Error getting outgoing requests:', error);
+    return [];
+  }
+}
+
+export async function findPendingRequest(fromUserId: number, toUserId: number): Promise<ConnectionRequest | null> {
+  try {
+    const db = await getDatabase();
+    return await db.collection<ConnectionRequest>('connection_requests')
+      .findOne({ fromUserId, toUserId, status: 'pending' });
+  } catch (error) {
+    console.error('Error finding pending request:', error);
+    return null;
+  }
+}
+
+export async function acceptConnectionRequest(requestId: number, actingUserId: number): Promise<{ connection: Connection; conversation: Conversation } | null> {
+  const db = await getDatabase();
+  const request = await db.collection<ConnectionRequest>('connection_requests')
+    .findOne({ _id: requestId });
+
+  if (!request) return null;
+  if (request.toUserId !== actingUserId) return null;
+  if (request.status !== 'pending') return null;
+
+  const [userIdA, userIdB] = normalizePair(request.fromUserId, request.toUserId);
+
+  await db.collection<ConnectionRequest>('connection_requests').updateOne(
+    { _id: requestId, status: 'pending' },
+    { $set: { status: 'accepted', respondedAt: new Date().toISOString() } }
+  );
+
+  const connection: Connection = {
+    _id: newId(),
+    userIdA,
+    userIdB,
+    createdAt: new Date().toISOString(),
+  };
+
+  await db.collection<Connection>('connections').updateOne(
+    { userIdA, userIdB },
+    { $setOnInsert: connection },
+    { upsert: true }
+  );
+
+  const conversation = await getOrCreateConversation(userIdA, userIdB);
+  return { connection, conversation };
+}
+
+export async function rejectConnectionRequest(requestId: number, actingUserId: number): Promise<boolean> {
+  try {
+    const db = await getDatabase();
+    const request = await db.collection<ConnectionRequest>('connection_requests').findOne({ _id: requestId });
+    if (!request) return false;
+    if (request.toUserId !== actingUserId) return false;
+    if (request.status !== 'pending') return false;
+
+    const result = await db.collection<ConnectionRequest>('connection_requests').updateOne(
+      { _id: requestId, status: 'pending' },
+      { $set: { status: 'rejected', respondedAt: new Date().toISOString() } }
+    );
+    return result.modifiedCount === 1;
+  } catch (error) {
+    console.error('Error rejecting request:', error);
+    return false;
+  }
+}
+
+export async function getConnectionsForUser(userId: number): Promise<Connection[]> {
+  try {
+    const db = await getDatabase();
+    return await db.collection<Connection>('connections')
+      .find({ $or: [{ userIdA: userId }, { userIdB: userId }] })
+      .sort({ createdAt: -1 })
+      .toArray();
+  } catch (error) {
+    console.error('Error getting connections:', error);
+    return [];
+  }
+}
+
+export async function getOrCreateConversation(userIdA: number, userIdB: number): Promise<Conversation> {
+  const db = await getDatabase();
+  const [a, b] = normalizePair(userIdA, userIdB);
+
+  const existing = await db.collection<Conversation>('conversations').findOne({ memberIds: [a, b] as any });
+  if (existing) return existing;
+
+  const convo: Conversation = {
+    _id: newId(),
+    memberIds: [a, b],
+    createdAt: new Date().toISOString(),
+  };
+
+  await db.collection<Conversation>('conversations').insertOne(convo);
+  return convo;
+}
+
+export async function listMessages(conversationId: number, after?: string): Promise<Message[]> {
+  try {
+    const db = await getDatabase();
+    const filter: any = { conversationId };
+    if (after) {
+      filter.createdAt = { $gt: after };
+    }
+    return await db.collection<Message>('messages')
+      .find(filter)
+      .sort({ createdAt: 1 })
+      .limit(200)
+      .toArray();
+  } catch (error) {
+    console.error('Error listing messages:', error);
+    return [];
+  }
+}
+
+export async function createMessage(conversationId: number, senderId: number, text: string): Promise<Message> {
+  const db = await getDatabase();
+  const msg: Message = {
+    _id: newId(),
+    conversationId,
+    senderId,
+    text,
+    createdAt: new Date().toISOString(),
+  };
+  await db.collection<Message>('messages').insertOne(msg);
+  await db.collection<Conversation>('conversations').updateOne(
+    { _id: conversationId },
+    { $set: { lastMessageAt: msg.createdAt } }
+  );
+  return msg;
 }
 
 // Seed initial todos for testing (optional - remove in production)

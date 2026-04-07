@@ -17,8 +17,6 @@ export default function Home() {
   const [todos, setTodos] = useState<Todo[]>([]);
 
   const [filter, setFilter] = useState<Filter>("all");
-  const [editingId, setEditingId] = useState<number | null>(null);
-  const [editText, setEditText] = useState("");
   const [loading, setLoading] = useState(true);
   const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
   
@@ -99,17 +97,6 @@ export default function Home() {
   };
 
 
-  const saveEdit = async (id: number) => {
-    if (!editText.trim()) return;
-    setTodos(prev => prev.map(t => t.id === id ? { ...t, title: editText.trim() } : t));
-    setEditingId(null);
-    await fetch(`/api/todos/${id}`, {
-      method: "PUT",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ title: editText.trim() }),
-    });
-  };
-
   const filteredTodos = todos.filter(t => {
     if (filter === "active") return !t.completed;
     if (filter === "completed") return t.completed;
@@ -118,8 +105,8 @@ export default function Home() {
 
   const searchedTodos = filteredTodos.filter(t => t.title.toLowerCase().includes(taskSearch.toLowerCase()));
   const sortedTodos = [...searchedTodos].sort((a, b) => {
-      let valA = a[taskSortField] ?? "";
-      let valB = b[taskSortField] ?? "";
+      const valA = a[taskSortField] ?? "";
+      const valB = b[taskSortField] ?? "";
       if (valA < valB) return taskSortDir === "asc" ? -1 : 1;
       if (valA > valB) return taskSortDir === "asc" ? 1 : -1;
       return 0;
@@ -999,6 +986,15 @@ export default function Home() {
                     <strong>{totalCount}</strong>
                     <span>total</span>
                   </div>
+                  <button
+                    className="stat-pill"
+                    style={{ cursor: "pointer" }}
+                    onClick={() => router.push("/connections")}
+                    title="Connections"
+                  >
+                    <strong>👥</strong>
+                    <span>connections</span>
+                  </button>
                 </>
               )}
 
@@ -1081,7 +1077,7 @@ export default function Home() {
                     <div className="search-area">
                       <input 
                         type="text" 
-                        placeholder="Search tasks..." 
+                        placeholder="Search task by title" 
                         className="search-input"
                         value={taskSearch}
                         onChange={e => { setTaskSearch(e.target.value); setTaskPage(1); }}
@@ -1115,7 +1111,9 @@ export default function Home() {
                                 <th onClick={() => handleTaskSort('dueDate')}>
                                   Due Date {taskSortField === 'dueDate' && <span className="sort-icon">{taskSortDir === 'asc' ? '▲' : '▼'}</span>}
                                 </th>
-                                <th>Status</th>
+                                <th onClick={() => handleTaskSort('completed')}>
+                                  Status {taskSortField === 'completed' && <span className="sort-icon">{taskSortDir === 'asc' ? '▲' : '▼'}</span>}
+                                </th>
                               </tr>
                             </thead>
                             <tbody>

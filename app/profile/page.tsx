@@ -1112,7 +1112,7 @@ export default function ProfilePage() {
             </nav>
 
             <div className="pp-sidebar-footer">
-              <button className="pp-back-btn" onClick={() => router.push('/')}>← Back to Todos</button>
+              <button className="pp-back-btn" onClick={() => router.push('/')}>Dashboard</button>
               <button className="pp-logout-btn" onClick={() => { setMobileSidebarOpen(false); setShowLogoutConfirm(true); }}>↑ Logout</button>
             </div>
           </div>
@@ -1152,7 +1152,7 @@ export default function ProfilePage() {
           </nav>
 
           <div className="pp-sidebar-footer">
-            <button className="pp-back-btn" onClick={() => router.push('/')}>← Back to Todos</button>
+            <button className="pp-back-btn" onClick={() => router.push('/')}>Dashboard</button>
             <button className="pp-logout-btn" onClick={() => setShowLogoutConfirm(true)}>↑ Logout</button>
           </div>
         </aside>
@@ -1198,7 +1198,7 @@ export default function ProfilePage() {
               <div className="pp-topbar-sub">{sectionTitles[activeSection].sub}</div>
             </div>
             <div className="pp-topbar-actions">
-              <button className="pp-topbar-back" onClick={() => router.push('/')}>← Back to Todos</button>
+              <button className="pp-topbar-back" onClick={() => router.push('/')}>Dashboard</button>
               <button className="pp-topbar-logout" onClick={() => setShowLogoutConfirm(true)}>Logout</button>
             </div>
           </div>
