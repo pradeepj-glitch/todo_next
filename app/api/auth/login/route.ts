@@ -33,17 +33,26 @@ export async function POST(req: NextRequest) {
       );
     }
 
+    // Check if user is soft-deleted
+    if (user.isDeleted) {
+      return NextResponse.json(
+        { error: "Account has been deactivated. Please contact support." },
+        { status: 403 }
+      );
+    }
+
     // Generate JWT token
     const token = generateToken({
       userId: user._id,
       email: user.email,
+      role: user.role,
     });
 
     // Set cookie
     const response = NextResponse.json(
       {
         message: "Login successful",
-        user: { id: user._id, email: user.email, name: user.name },
+        user: { id: user._id, email: user.email, name: user.name, role: user.role },
       },
       { status: 200 }
     );

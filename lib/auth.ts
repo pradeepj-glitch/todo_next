@@ -8,12 +8,15 @@ export interface User {
   email: string;
   password: string;
   name: string;
+  role: 'admin' | 'user';
+  isDeleted: boolean;
   createdAt: string;
 }
 
 export interface JWTPayload {
   userId: number;
   email: string;
+  role: 'admin' | 'user';
 }
 
 // User type without password for safe return to client
@@ -21,6 +24,8 @@ export interface SafeUser {
   _id: number;
   email: string;
   name: string;
+  role: 'admin' | 'user';
+  isDeleted: boolean;
   createdAt: string;
 }
 

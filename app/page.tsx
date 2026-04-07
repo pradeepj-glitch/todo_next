@@ -4,29 +4,12 @@
 import { useEffect, useState, useRef } from "react";
 import { useAuth, THEME_COLORS } from "../context/AuthContext";
 import { useRouter } from "next/navigation";
+import AdminOverview from "./components/AdminOverview";
 
-type Priority = "low" | "medium" | "high";
+import { Priority, Todo } from "@/lib/types";
+import { PRIORITY_CONFIG, getThemeColors } from "@/lib/theme";
+
 type Filter = "all" | "active" | "completed";
-
-interface Todo {
-  id: number;
-  text: string;
-  completed: boolean;
-  priority: Priority;
-  createdAt: string;
-}
-
-const PRIORITY_CONFIG: Record<Priority, {
-  label: string;
-  color: string;
-  bg: string;
-  border: string;
-  glow: string;
-}> = {
-  low:    { label: "Low",    color: "#22c55e", bg: "rgba(34,197,94,0.08)",   border: "rgba(34,197,94,0.3)",  glow: "rgba(34,197,94,0.2)"  },
-  medium: { label: "Medium", color: "#f59e0b", bg: "rgba(245,158,11,0.08)",  border: "rgba(245,158,11,0.3)", glow: "rgba(245,158,11,0.2)" },
-  high:   { label: "High",   color: "#ef4444", bg: "rgba(239,68,68,0.08)",   border: "rgba(239,68,68,0.3)",  glow: "rgba(239,68,68,0.2)"  },
-};
 
 export default function Home() {
   const { user, loading: authLoading, logout, themeColor, darkMode } = useAuth();
@@ -41,28 +24,19 @@ export default function Home() {
   const [loading, setLoading] = useState(true);
   const [adding, setAdding] = useState(false);
   const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
+  
+  // Completion Modal States
+  const [showCompletionModal, setShowCompletionModal] = useState(false);
+  const [taskToComplete, setTaskToComplete] = useState<Todo | null>(null);
+  const [completionMsg, setCompletionMsg] = useState("");
+  const [completing, setCompleting] = useState(false);
 
   const inputRef = useRef<HTMLInputElement>(null);
 
   const theme = THEME_COLORS[themeColor];
   const isDark = darkMode;
 
-  // Refined color system
-  const colors = {
-    bg:           isDark ? "#070b12"   : "#f4f6fb",
-    surface:      isDark ? "#0d1420"   : "#ffffff",
-    surfaceHover: isDark ? "#111827"   : "#f9faff",
-    border:       isDark ? "rgba(255,255,255,0.06)" : "rgba(0,0,0,0.07)",
-    borderHover:  isDark ? "rgba(255,255,255,0.12)" : "rgba(0,0,0,0.14)",
-    text:         isDark ? "#e8edf5"   : "#111827",
-    textMuted:    isDark ? "#5a6a82"   : "#8a94a6",
-    textSub:      isDark ? "#3d4f68"   : "#bcc4d0",
-    input:        isDark ? "#0d1420"   : "#f4f6fb",
-    inputBorder:  isDark ? "rgba(255,255,255,0.08)" : "rgba(0,0,0,0.09)",
-    heading:      isDark ? "#f0f4ff"   : "#0a0f1e",
-    accent:       theme.primary || "#6366f1",
-    shimmer:      isDark ? "rgba(255,255,255,0.03)" : "rgba(255,255,255,0.7)",
-  };
+  const colors = getThemeColors(darkMode, THEME_COLORS[themeColor].primary);
 
   useEffect(() => {
     if (!authLoading && !user) router.push("/login");
@@ -92,7 +66,14 @@ export default function Home() {
     await fetch("/api/todos", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ text: text.trim(), priority }),
+      body: JSON.stringify({ 
+        userId: user?.id,
+        title: text.trim(), 
+        priority,
+        description: "Self-assigned task",
+        dueDate: new Date(Date.now() + 86400000 * 7).toISOString().split('T')[0], // Default 7 days
+        message: "Manually added from dashboard"
+      }),
     });
     setText("");
     setPriority("medium");
@@ -107,27 +88,54 @@ export default function Home() {
   };
 
   const toggleTodo = async (id: number) => {
-    setTodos(prev => prev.map(t => t.id === id ? { ...t, completed: !t.completed } : t));
-    await fetch(`/api/todos/${id}`, {
-      method: "PUT",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ toggle: true }),
-    });
+    const todo = todos.find(t => t.id === id);
+    if (!todo) return;
+
+    if (todo.completed) return; // Cannot undo completion
+
+    setTaskToComplete(todo);
+    setShowCompletionModal(true);
+    setCompletionMsg("");
+  };
+
+  const handleCompleteTask = async () => {
+    if (!taskToComplete || !completionMsg.trim()) return;
+    
+    setCompleting(true);
+    const id = taskToComplete.id!;
+    
+    try {
+      const res = await fetch(`/api/todos/${id}`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ toggle: true, completionMessage: completionMsg.trim() }),
+      });
+
+      if (res.ok) {
+        setTodos(prev => prev.map(t => t.id === id ? { ...t, completed: true, completionMessage: completionMsg.trim() } : t));
+        setShowCompletionModal(false);
+        setTaskToComplete(null);
+      }
+    } catch (error) {
+      console.error("Failed to complete task:", error);
+    } finally {
+      setCompleting(false);
+    }
   };
 
   const startEdit = (todo: Todo) => {
-    setEditingId(todo.id);
-    setEditText(todo.text);
+    setEditingId(todo.id!);
+    setEditText(todo.title);
   };
 
   const saveEdit = async (id: number) => {
     if (!editText.trim()) return;
-    setTodos(prev => prev.map(t => t.id === id ? { ...t, text: editText.trim() } : t));
+    setTodos(prev => prev.map(t => t.id === id ? { ...t, title: editText.trim() } : t));
     setEditingId(null);
     await fetch(`/api/todos/${id}`, {
       method: "PUT",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ text: editText.trim() }),
+      body: JSON.stringify({ title: editText.trim() }),
     });
   };
 
@@ -942,19 +950,23 @@ export default function Home() {
             </div>
 
             <div className="topbar-right">
-              <div className="stat-pill always">
-                <span className="stat-pill-dot" style={{ background: '#22c55e' }} />
-                <strong>{activeCount}</strong>
-                <span>remaining</span>
-              </div>
-              <div className="stat-pill">
-                <strong>{completedCount}</strong>
-                <span>done</span>
-              </div>
-              <div className="stat-pill">
-                <strong>{totalCount}</strong>
-                <span>total</span>
-              </div>
+              {user?.role === 'admin' ? null : (
+                <>
+                  <div className="stat-pill always">
+                    <span className="stat-pill-dot" style={{ background: '#22c55e' }} />
+                    <strong>{activeCount}</strong>
+                    <span>remaining</span>
+                  </div>
+                  <div className="stat-pill">
+                    <strong>{completedCount}</strong>
+                    <span>done</span>
+                  </div>
+                  <div className="stat-pill">
+                    <strong>{totalCount}</strong>
+                    <span>total</span>
+                  </div>
+                </>
+              )}
 
               {user && (
                 <button
@@ -970,206 +982,198 @@ export default function Home() {
 
           {/* ── BODY GRID ──────────────────────────────────── */}
           <div className="body-grid">
-
-            {/* Main column */}
-            <div className="main-col">
-
-              {/* Progress banner */}
-              <div className="progress-banner">
-                <div className="progress-greeting">
-                  <h2>{user ? `Hey, ${user.name}!` : 'Welcome back!'}</h2>
-                  <p>
-                    {totalCount === 0
-                      ? 'Add your first task below'
-                      : completionPct === 100
-                        ? '🎉 All tasks complete!'
-                        : `${completionPct}% of your tasks completed`
-                    }
-                  </p>
-                </div>
-                <div className="progress-ring-wrap">
-                  <svg width="64" height="64" viewBox="0 0 64 64">
-                    <circle cx="32" cy="32" r="26" fill="none" stroke={colors.border} strokeWidth="5" />
-                    <circle
-                      cx="32" cy="32" r="26"
-                      fill="none"
-                      stroke={colors.accent}
-                      strokeWidth="5"
-                      strokeLinecap="round"
-                      strokeDasharray={`${2 * Math.PI * 26}`}
-                      strokeDashoffset={`${2 * Math.PI * 26 * (1 - completionPct / 100)}`}
-                      transform="rotate(-90 32 32)"
-                      style={{ transition: 'stroke-dashoffset 0.6s ease' }}
-                    />
-                  </svg>
-                  <div className="progress-ring-label">{completionPct}%</div>
-                </div>
+            {user?.role === 'admin' ? (
+              <div key="admin-view" style={{ gridColumn: '1 / -1' }}>
+                <AdminOverview />
               </div>
-
-              {/* Todo card */}
-              <div className="card">
-                <div className="card-header">
-                  <span className="card-title">My Tasks</span>
-                  <span className="badge">
-                    {filter === 'all' ? 'All' : filter === 'active' ? 'Active' : 'Completed'}
-                  </span>
-                </div>
-
-                {/* Input */}
-                <div className="input-zone">
-                  <div className="input-row">
-                    <input
-                      ref={inputRef}
-                      className="main-input"
-                      placeholder="What needs to be done?"
-                      value={text}
-                      onChange={(e) => setText(e.target.value)}
-                      onKeyDown={(e) => e.key === "Enter" && addTodo()}
-                    />
-                    <button className="add-btn" onClick={addTodo} disabled={adding || !text.trim()}>
-                      +
-                    </button>
+            ) : (
+              <>
+                {/* Main column */}
+                <div className="main-col">
+                  {/* Progress banner */}
+                  <div className="progress-banner">
+                    <div className="progress-greeting">
+                      <h2>{user ? `Hey, ${user.name}!` : 'Welcome back!'}</h2>
+                      <p>
+                        {totalCount === 0
+                          ? 'Add your first task below'
+                          : completionPct === 100
+                            ? '🎉 All tasks complete!'
+                            : `${completionPct}% of your tasks completed`
+                        }
+                      </p>
+                    </div>
+                    <div className="progress-ring-wrap">
+                      <svg width="64" height="64" viewBox="0 0 64 64">
+                        <circle cx="32" cy="32" r="26" fill="none" stroke={colors.border} strokeWidth="5" />
+                        <circle
+                          cx="32" cy="32" r="26"
+                          fill="none"
+                          stroke={colors.accent}
+                          strokeWidth="5"
+                          strokeLinecap="round"
+                          strokeDasharray={`${2 * Math.PI * 26}`}
+                          strokeDashoffset={`${2 * Math.PI * 26 * (1 - completionPct / 100)}`}
+                          transform="rotate(-90 32 32)"
+                          style={{ transition: 'stroke-dashoffset 0.6s ease' }}
+                        />
+                      </svg>
+                      <div className="progress-ring-label">{completionPct}%</div>
+                    </div>
                   </div>
 
-                  <div className="priority-row">
-                    {(["low", "medium", "high"] as Priority[]).map((p) => {
-                      const cfg = PRIORITY_CONFIG[p];
-                      const active = priority === p;
-                      return (
+                  {/* Todo card */}
+                  <div className="card">
+                    <div className="card-header">
+                      <span className="card-title">My Tasks</span>
+                      <span className="badge">
+                        {filter === 'all' ? 'All' : filter === 'active' ? 'Active' : 'Completed'}
+                      </span>
+                    </div>
+
+                    {/* Filter tabs */}
+                    <div className="filter-tabs">
+                      {(["all", "active", "completed"] as Filter[]).map((f) => (
                         <button
-                          key={p}
-                          className="pri-btn"
-                          style={active ? {
-                            borderColor: cfg.border,
-                            background: cfg.bg,
-                            color: cfg.color,
-                          } : {}}
-                          onClick={() => setPriority(p)}
+                          key={f}
+                          className={`filter-tab ${filter === f ? "active" : ""}`}
+                          onClick={() => setFilter(f)}
                         >
-                          <span className="pri-dot" style={{ background: cfg.color }} />
-                          {cfg.label}
+                          {f.charAt(0).toUpperCase() + f.slice(1)}
                         </button>
+                      ))}
+                    </div>
+
+                    {/* List */}
+                    <div className="todo-list">
+                      {loading ? (
+                        <div className="empty-state">
+                          <div className="empty-icon">⏳</div>
+                          <p>Loading tasks…</p>
+                        </div>
+                      ) : filteredTodos.length === 0 ? (
+                        <div className="empty-state">
+                          <div className="empty-icon">📋</div>
+                          <p>No {filter} tasks yet</p>
+                        </div>
+                      ) : filteredTodos.map((todo) => (
+                        <div
+                          key={todo.id}
+                          className={`todo-item ${todo.completed ? "completed" : ""}`}
+                          style={{ ['--item-border' as string]: PRIORITY_CONFIG[todo.priority].color }}
+                        >
+                          <div
+                            className={`todo-check ${todo.completed ? "checked" : ""}`}
+                            style={{ cursor: todo.completed ? 'default' : 'pointer' }}
+                            onClick={() => !todo.completed && toggleTodo(todo.id!)}
+                          >
+                            {todo.completed && (
+                              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="3.5">
+                                <polyline points="20 6 9 17 4 12" />
+                              </svg>
+                            )}
+                          </div>
+
+                          <div className="todo-content" style={{ flex: 1 }}>
+                            {editingId === todo.id ? (
+                              <input
+                                className="edit-input"
+                                value={editText}
+                                autoFocus
+                                onChange={(e) => setEditText(e.target.value)}
+                                onKeyDown={(e) => {
+                                  if (e.key === "Enter") saveEdit(todo.id!);
+                                  if (e.key === "Escape") setEditingId(null);
+                                }}
+                              />
+                            ) : (
+                              <>
+                                <div className={`todo-title ${todo.completed ? "done" : ""}`} style={{ fontWeight: 600, fontSize: '0.95rem' }}>
+                                  {todo.title}
+                                </div>
+                                {todo.description && (
+                                  <div className="todo-desc" style={{ fontSize: '0.78rem', color: colors.textMuted, marginTop: '2px' }}>
+                                    {todo.description}
+                                  </div>
+                                )}
+                                <div className="todo-meta" style={{ display: 'flex', gap: '12px', marginTop: '6px', fontSize: '0.72rem', color: colors.textSub }}>
+                                  <span title="Due Date">📅 {new Date(todo.dueDate).toLocaleDateString()}</span>
+                                  <span title="Assigned By">👤 {todo.assignedByName}</span>
+                                </div>
+                                {todo.message && (
+                                  <div className="todo-admin-msg" style={{ marginTop: '8px', padding: '6px 10px', background: 'rgba(99, 102, 241, 0.05)', borderRadius: '8px', fontSize: '0.75rem', borderLeft: '2px solid var(--accent)' }}>
+                                    <strong style={{ color: colors.accent }}>Admin Message:</strong> {todo.message}
+                                  </div>
+                                )}
+                                {todo.completionMessage && (
+                                  <div className="todo-complete-msg" style={{ marginTop: '8px', padding: '6px 10px', background: 'rgba(34, 197, 94, 0.05)', borderRadius: '8px', fontSize: '0.75rem', borderLeft: '2px solid #22c55e', color: '#166534' }}>
+                                    <strong style={{ color: '#22c55e' }}>Your Completion Note:</strong> {todo.completionMessage}
+                                  </div>
+                                )}
+                              </>
+                            )}
+                          </div>
+
+                          {user?.role === 'admin' && !todo.completed && (
+                            <div className="item-actions">
+                              {editingId === todo.id ? (
+                                <button className="icon-btn" onClick={() => saveEdit(todo.id!)}>✓</button>
+                              ) : (
+                                <button className="icon-btn" onClick={() => startEdit(todo)}>✎</button>
+                              )}
+                              <button className="icon-btn" onClick={() => deleteTodo(todo.id!)}>✕</button>
+                            </div>
+                          )}
+
+                          <span
+                            className="priority-pip"
+                            style={{ background: PRIORITY_CONFIG[todo.priority].color }}
+                          />
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                </div>
+
+                {/* Sidebar */}
+                <div className="sidebar-col">
+                  {/* Priority overview */}
+                  <div className="sidebar-card">
+                    <div className="sidebar-label">Priority Breakdown</div>
+                    {(["high", "medium", "low"] as Priority[]).map((p) => {
+                      const cfg = PRIORITY_CONFIG[p];
+                      const count = todos.filter(t => t.priority === p).length;
+                      const pct = totalCount > 0 ? (count / totalCount) * 100 : 0;
+                      return (
+                        <div key={p} className="pri-row">
+                          <span className="pri-dot" style={{ background: cfg.color }} />
+                          <span className="pri-row-label">{cfg.label}</span>
+                          <div className="pri-row-bar-wrap">
+                            <div
+                              className="pri-row-bar"
+                              style={{ width: `${pct}%`, background: cfg.color }}
+                            />
+                          </div>
+                          <span className="pri-row-count">{count}</span>
+                        </div>
                       );
                     })}
                   </div>
-                </div>
 
-                {/* Filter tabs */}
-                <div className="filter-tabs">
-                  {(["all", "active", "completed"] as Filter[]).map((f) => (
+                  {/* Actions */}
+                  <div className="sidebar-card">
+                    <div className="sidebar-label">Actions</div>
                     <button
-                      key={f}
-                      className={`filter-tab ${filter === f ? "active" : ""}`}
-                      onClick={() => setFilter(f)}
+                      className={`clear-btn ${completedCount > 0 ? 'has-completed' : 'none'}`}
+                      onClick={clearCompleted}
+                      disabled={completedCount === 0}
                     >
-                      {f.charAt(0).toUpperCase() + f.slice(1)}
+                      🗑 Clear Completed ({completedCount})
                     </button>
-                  ))}
+                  </div>
                 </div>
-
-                {/* List */}
-                <div className="todo-list">
-                  {loading ? (
-                    <div className="empty-state">
-                      <div className="empty-icon">⏳</div>
-                      <p>Loading tasks…</p>
-                    </div>
-                  ) : filteredTodos.length === 0 ? (
-                    <div className="empty-state">
-                      <div className="empty-icon">📋</div>
-                      <p>No {filter} tasks yet</p>
-                    </div>
-                  ) : filteredTodos.map((todo) => (
-                    <div
-                      key={todo.id}
-                      className={`todo-item ${todo.completed ? "completed" : ""}`}
-                      style={{ ['--item-border' as string]: PRIORITY_CONFIG[todo.priority].color }}
-                    >
-                      <div
-                        className={`todo-check ${todo.completed ? "checked" : ""}`}
-                        onClick={() => toggleTodo(todo.id)}
-                      >
-                        {todo.completed && (
-                          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="3.5">
-                            <polyline points="20 6 9 17 4 12" />
-                          </svg>
-                        )}
-                      </div>
-
-                      {editingId === todo.id ? (
-                        <input
-                          className="edit-input"
-                          value={editText}
-                          autoFocus
-                          onChange={(e) => setEditText(e.target.value)}
-                          onKeyDown={(e) => {
-                            if (e.key === "Enter") saveEdit(todo.id);
-                            if (e.key === "Escape") setEditingId(null);
-                          }}
-                        />
-                      ) : (
-                        <span className={`todo-text ${todo.completed ? "done" : ""}`}>
-                          {todo.text}
-                        </span>
-                      )}
-
-                      <div className="item-actions">
-                        {editingId === todo.id ? (
-                          <button className="icon-btn" onClick={() => saveEdit(todo.id)}>✓</button>
-                        ) : (
-                          <button className="icon-btn" onClick={() => startEdit(todo)}>✎</button>
-                        )}
-                        <button className="icon-btn" onClick={() => deleteTodo(todo.id)}>✕</button>
-                      </div>
-
-                      <span
-                        className="priority-pip"
-                        style={{ background: PRIORITY_CONFIG[todo.priority].color }}
-                      />
-                    </div>
-                  ))}
-                </div>
-              </div>
-            </div>
-
-            {/* Sidebar */}
-            <div className="sidebar-col">
-
-              {/* Priority overview */}
-              <div className="sidebar-card">
-                <div className="sidebar-label">Priority Breakdown</div>
-                {(["high", "medium", "low"] as Priority[]).map((p) => {
-                  const cfg = PRIORITY_CONFIG[p];
-                  const count = todos.filter(t => t.priority === p).length;
-                  const pct = totalCount > 0 ? (count / totalCount) * 100 : 0;
-                  return (
-                    <div key={p} className="pri-row">
-                      <span className="pri-row-dot" style={{ background: cfg.color }} />
-                      <span className="pri-row-label">{cfg.label}</span>
-                      <div className="pri-row-bar-wrap">
-                        <div
-                          className="pri-row-bar"
-                          style={{ width: `${pct}%`, background: cfg.color }}
-                        />
-                      </div>
-                      <span className="pri-row-count">{count}</span>
-                    </div>
-                  );
-                })}
-              </div>
-
-              {/* Actions */}
-              <div className="sidebar-card">
-                <div className="sidebar-label">Actions</div>
-                <button
-                  className={`clear-btn ${completedCount > 0 ? 'has-completed' : 'none'}`}
-                  onClick={clearCompleted}
-                  disabled={completedCount === 0}
-                >
-                  🗑 Clear Completed ({completedCount})
-                </button>
-              </div>
-            </div>
+              </>
+            )}
           </div>
 
           {/* Footer */}
@@ -1188,6 +1192,47 @@ export default function Home() {
             <div className="modal-btns">
               <button className="btn-cancel" onClick={() => setShowLogoutConfirm(false)}>Cancel</button>
               <button className="btn-danger" onClick={handleLogout}>Sign out</button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Completion Modal */}
+      {showCompletionModal && (
+        <div className="modal-overlay">
+          <div className="modal-box" style={{ maxWidth: '450px' }}>
+            <div className="modal-title" style={{ color: '#22c55e' }}>Complete Task</div>
+            <p className="modal-body">
+              Great job! Please provide a short message about this task. This is mandatory and cannot be changed later.
+            </p>
+            
+            <div style={{ marginBottom: '1.5rem' }}>
+              <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: 700, color: colors.textMuted, marginBottom: '8px', textTransform: 'uppercase' }}>
+                Completion Message
+              </label>
+              <textarea 
+                style={{ 
+                  width: '100%', padding: '12px', borderRadius: '12px', border: `1px solid ${colors.border}`, 
+                  background: colors.bg, color: colors.text, fontFamily: 'inherit', outline: 'none',
+                  minHeight: '100px', resize: 'vertical'
+                }}
+                placeholder="What did you achieve?..."
+                value={completionMsg}
+                onChange={(e) => setCompletionMsg(e.target.value)}
+                autoFocus
+              />
+            </div>
+
+            <div className="modal-btns">
+              <button className="btn-cancel" onClick={() => !completing && setShowCompletionModal(false)}>Cancel</button>
+              <button 
+                className="btn-danger" 
+                style={{ background: '#22c55e', color: 'white', borderColor: '#22c55e' }}
+                onClick={handleCompleteTask}
+                disabled={!completionMsg.trim() || completing}
+              >
+                {completing ? 'Completing...' : 'Mark as Completed'}
+              </button>
             </div>
           </div>
         </div>

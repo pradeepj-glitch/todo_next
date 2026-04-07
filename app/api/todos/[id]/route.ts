@@ -1,215 +1,128 @@
 import { NextRequest, NextResponse } from "next/server";
-import type { Priority } from "../../../../lib/types";
-import { getTokenFromRequest, verifyToken } from "../../../../lib/auth";
-import { findTodoByIdAndUserId, updateTodo, deleteTodo } from "../../../../lib/db";
+import type { Priority } from "@/lib/types";
+import { getTokenFromRequest, verifyToken } from "@/lib/auth";
+import { findTodoByIdAndUserId, updateTodo, deleteTodo, getDatabase } from "@/lib/db";
 
-// GET single todo (with ownership verification)
+// GET single todo (with ownership/admin verification)
 export async function GET(
   req: NextRequest,
-  context: { params: Promise<{ id: string }> }
+  context: { params: { id: string } }
 ) {
   try {
-    // Get token from request
     const token = getTokenFromRequest(req);
-    
-    if (!token) {
-      return NextResponse.json(
-        { error: "Not authenticated" },
-        { status: 401 }
-      );
-    }
+    if (!token) return NextResponse.json({ error: "Not authenticated" }, { status: 401 });
 
-    // Verify token
     const payload = verifyToken(token);
-    
-    if (!payload) {
-      return NextResponse.json(
-        { error: "Invalid or expired token" },
-        { status: 401 }
-      );
-    }
+    if (!payload) return NextResponse.json({ error: "Invalid or expired token" }, { status: 401 });
 
-    // Get todo ID from params
     const { id } = await context.params;
     const todoId = Number(id);
 
-    // Find todo with ownership verification
-    const todo = await findTodoByIdAndUserId(todoId, payload.userId);
-
-    if (!todo) {
-      return NextResponse.json(
-        { error: "Todo not found" },
-        { status: 404 }
-      );
+    let todo;
+    if (payload.role === 'admin') {
+      const db = await getDatabase();
+      todo = await db.collection("todos").findOne({ _id: todoId } as any);
+    } else {
+      todo = await findTodoByIdAndUserId(todoId, payload.userId);
     }
 
-    // Map _id to id for frontend compatibility
-    const todoWithId = {
-      id: todo._id,
-      userId: todo.userId,
-      text: todo.text,
-      completed: todo.completed,
-      priority: todo.priority,
-      createdAt: todo.createdAt,
-    };
+    if (!todo) return NextResponse.json({ error: "Todo not found" }, { status: 404 });
 
-    return NextResponse.json(todoWithId, { status: 200 });
+    return NextResponse.json({ ...todo, id: todo._id }, { status: 200 });
   } catch (error) {
     console.error("Get todo error:", error);
-    return NextResponse.json(
-      { error: "Internal server error" },
-      { status: 500 }
-    );
+    return NextResponse.json({ error: "Internal server error" }, { status: 500 });
   }
 }
 
-// UPDATE todo (with ownership verification)
+// UPDATE todo (with ownership/admin verification)
 export async function PUT(
   req: NextRequest,
-  context: { params: Promise<{ id: string }> }
+  context: { params: { id: string } }
 ) {
   try {
-    // Get token from request
     const token = getTokenFromRequest(req);
-    
-    if (!token) {
-      return NextResponse.json(
-        { error: "Not authenticated" },
-        { status: 401 }
-      );
-    }
+    if (!token) return NextResponse.json({ error: "Not authenticated" }, { status: 401 });
 
-    // Verify token
     const payload = verifyToken(token);
-    
-    if (!payload) {
-      return NextResponse.json(
-        { error: "Invalid or expired token" },
-        { status: 401 }
-      );
-    }
+    if (!payload) return NextResponse.json({ error: "Invalid or expired token" }, { status: 401 });
 
-    // Get todo ID from params
     const { id } = await context.params;
     const todoId = Number(id);
-
-    // Get request body
     const body = await req.json();
 
-    // Find todo with ownership verification
-    const existingTodo = await findTodoByIdAndUserId(todoId, payload.userId);
-
-    if (!existingTodo) {
-      return NextResponse.json(
-        { error: "Todo not found" },
-        { status: 404 }
-      );
+    let existingTodo;
+    if (payload.role === 'admin') {
+      const db = await getDatabase();
+      existingTodo = await db.collection("todos").findOne({ _id: todoId } as any);
+    } else {
+      existingTodo = await findTodoByIdAndUserId(todoId, payload.userId);
     }
+
+    if (!existingTodo) return NextResponse.json({ error: "Todo not found" }, { status: 404 });
 
     // Build updates object
-    const updates: { text?: string; completed?: boolean; priority?: Priority } = {};
-    
-    if (body.toggle !== undefined) {
-      updates.completed = !existingTodo.completed;
-    }
-    
-    if (body.text !== undefined) {
-      updates.text = body.text;
-    }
+    const updates: any = {};
+    if (body.toggle !== undefined) updates.completed = !existingTodo.completed;
+    if (body.title !== undefined) updates.title = body.title;
+    if (body.description !== undefined) updates.description = body.description;
+    if (body.priority !== undefined) updates.priority = body.priority as Priority;
+    if (body.dueDate !== undefined) updates.dueDate = body.dueDate;
+    if (body.message !== undefined) updates.message = body.message;
+    if (body.completionMessage !== undefined) updates.completionMessage = body.completionMessage;
 
-    if (body.priority !== undefined) {
-      updates.priority = body.priority as Priority;
-    }
-
-    // Update todo
-    const updatedTodo = await updateTodo(todoId, payload.userId, updates);
-
-    if (!updatedTodo) {
-      return NextResponse.json(
-        { error: "Failed to update todo" },
-        { status: 500 }
-      );
+    // Enforce one-way completion for non-admins
+    if (payload.role !== 'admin') {
+      if (existingTodo.completed && body.toggle !== undefined) {
+        return NextResponse.json({ error: "Completed tasks cannot be reopened" }, { status: 400 });
+      }
+      if (existingTodo.completed && (body.title || body.description || body.priority || body.dueDate)) {
+        return NextResponse.json({ error: "Completed tasks cannot be edited" }, { status: 400 });
+      }
     }
 
-    // Map _id to id for frontend compatibility
-    const todoWithId = {
-      id: updatedTodo._id,
-      userId: updatedTodo.userId,
-      text: updatedTodo.text,
-      completed: updatedTodo.completed,
-      priority: updatedTodo.priority,
-      createdAt: updatedTodo.createdAt,
-    };
+    const updatedTodo = await updateTodo(todoId, existingTodo.userId, updates);
 
-    return NextResponse.json(todoWithId, { status: 200 });
+    if (!updatedTodo) return NextResponse.json({ error: "Failed to update todo" }, { status: 500 });
+
+    return NextResponse.json({ ...updatedTodo, id: updatedTodo._id }, { status: 200 });
   } catch (error) {
     console.error("Update todo error:", error);
-    return NextResponse.json(
-      { error: "Internal server error" },
-      { status: 500 }
-    );
+    return NextResponse.json({ error: "Internal server error" }, { status: 500 });
   }
 }
 
-// DELETE todo (with ownership verification)
+// DELETE todo (with ownership/admin verification)
 export async function DELETE(
   req: NextRequest,
-  context: { params: Promise<{ id: string }> }
+  context: { params: { id: string } }
 ) {
   try {
-    // Get token from request
     const token = getTokenFromRequest(req);
-    
-    if (!token) {
-      return NextResponse.json(
-        { error: "Not authenticated" },
-        { status: 401 }
-      );
-    }
+    if (!token) return NextResponse.json({ error: "Not authenticated" }, { status: 401 });
 
-    // Verify token
     const payload = verifyToken(token);
-    
-    if (!payload) {
-      return NextResponse.json(
-        { error: "Invalid or expired token" },
-        { status: 401 }
-      );
-    }
+    if (!payload) return NextResponse.json({ error: "Invalid or expired token" }, { status: 401 });
 
-    // Get todo ID from params
     const { id } = await context.params;
     const todoId = Number(id);
 
-    // Find todo with ownership verification
-    const existingTodo = await findTodoByIdAndUserId(todoId, payload.userId);
-
-    if (!existingTodo) {
-      return NextResponse.json(
-        { error: "Todo not found" },
-        { status: 404 }
-      );
+    let existingTodo;
+    if (payload.role === 'admin') {
+      const db = await getDatabase();
+      existingTodo = await db.collection("todos").findOne({ _id: todoId } as any);
+    } else {
+      existingTodo = await findTodoByIdAndUserId(todoId, payload.userId);
     }
 
-    // Delete todo
-    const success = await deleteTodo(todoId, payload.userId);
+    if (!existingTodo) return NextResponse.json({ error: "Todo not found" }, { status: 404 });
 
-    if (!success) {
-      return NextResponse.json(
-        { error: "Failed to delete todo" },
-        { status: 500 }
-      );
-    }
+    const success = await deleteTodo(todoId, existingTodo.userId);
+    if (!success) return NextResponse.json({ error: "Failed to delete todo" }, { status: 500 });
 
-    return NextResponse.json(
-      { success: true },
-      { status: 200 }
-    );
+    return NextResponse.json({ success: true }, { status: 200 });
   } catch (error) {
     console.error("Delete todo error:", error);
-    return NextResponse.json(
-      { error: "Internal server error" },
-      { status: 500 }
-    );
+    return NextResponse.json({ error: "Internal server error" }, { status: 500 });
   }
 }
