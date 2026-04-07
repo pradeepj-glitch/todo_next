@@ -986,6 +986,15 @@ export default function Home() {
                     <strong>{totalCount}</strong>
                     <span>total</span>
                   </div>
+                  <button
+                    className="stat-pill"
+                    style={{ cursor: "pointer" }}
+                    onClick={() => router.push("/connections")}
+                    title="Connections"
+                  >
+                    <strong>👥</strong>
+                    <span>connections</span>
+                  </button>
                 </>
               )}
 
