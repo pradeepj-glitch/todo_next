@@ -60,7 +60,7 @@ export async function findUserById(id: number): Promise<User | null> {
   }
 }
 
-export async function createUser(email: string, password: string, name: string): Promise<User> {
+export async function createUser(email: string, password: string, name: string, role: 'admin' | 'user' = 'user'): Promise<User> {
   try {
     const db = await getDatabase();
     const newUser: User = {
@@ -68,15 +68,65 @@ export async function createUser(email: string, password: string, name: string):
       email,
       password,
       name,
+      role,
+      isDeleted: false,
       createdAt: new Date().toISOString(),
     };
     
     await db.collection<User>('users').insertOne(newUser);
-    console.log(`User created: ${email}`);
+    console.log(`User created: ${email} with role ${role}`);
     return newUser;
   } catch (error) {
     console.error('Error creating user:', error);
     throw error;
+  }
+}
+
+export async function getAllUsers(): Promise<User[]> {
+  try {
+    const db = await getDatabase();
+    const users = await db.collection<User>('users')
+      .find({ isDeleted: { $ne: true } })
+      .sort({ createdAt: -1 })
+      .toArray();
+    return users;
+  } catch (error) {
+    console.error('Error getting all users:', error);
+    return [];
+  }
+}
+
+export async function searchUsers(query: string): Promise<User[]> {
+  try {
+    const db = await getDatabase();
+    const users = await db.collection<User>('users')
+      .find({
+        isDeleted: { $ne: true },
+        $or: [
+          { name: { $regex: query, $options: 'i' } },
+          { email: { $regex: query, $options: 'i' } }
+        ]
+      })
+      .limit(10)
+      .toArray();
+    return users;
+  } catch (error) {
+    console.error('Error searching users:', error);
+    return [];
+  }
+}
+
+export async function softDeleteUser(id: number): Promise<boolean> {
+  try {
+    const db = await getDatabase();
+    const result = await db.collection<User>('users').updateOne(
+      { _id: id },
+      { $set: { isDeleted: true } }
+    );
+    return result.modifiedCount === 1;
+  } catch (error) {
+    console.error('Error soft deleting user:', error);
+    return false;
   }
 }
 
@@ -106,20 +156,30 @@ export async function findTodoByIdAndUserId(id: number, userId: number): Promise
   }
 }
 
-export async function createTodo(userId: number, text: string, priority: Priority): Promise<Todo> {
+export interface CreateTodoParams {
+  userId: number;
+  title: string;
+  description: string;
+  priority: Priority;
+  dueDate: string;
+  assignedBy: number;
+  assignedByName: string;
+  message: string;
+  completionMessage?: string;
+}
+
+export async function createTodo(params: CreateTodoParams): Promise<Todo> {
   try {
     const db = await getDatabase();
     const newTodo: Todo = {
       _id: Date.now(),
-      userId,
-      text,
+      ...params,
       completed: false,
-      priority,
       createdAt: new Date().toISOString(),
     };
     
     await db.collection<Todo>('todos').insertOne(newTodo);
-    console.log(`Todo created for user ${userId}: ${text}`);
+    console.log(`Todo created for user ${params.userId}: ${params.title}`);
     return newTodo;
   } catch (error) {
     console.error('Error creating todo:', error);
@@ -133,16 +193,20 @@ export async function updateTodo(id: number, userId: number, updates: Partial<Om
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const updateOps: any = {};
     
-    if (updates.text !== undefined) updateOps.text = updates.text;
+    if (updates.title !== undefined) updateOps.title = updates.title;
+    if (updates.description !== undefined) updateOps.description = updates.description;
     if (updates.completed !== undefined) updateOps.completed = updates.completed;
     if (updates.priority !== undefined) updateOps.priority = updates.priority;
+    if (updates.dueDate !== undefined) updateOps.dueDate = updates.dueDate;
+    if (updates.message !== undefined) updateOps.message = updates.message;
+    if (updates.completionMessage !== undefined) updateOps.completionMessage = updates.completionMessage;
     
     const result = await db.collection<Todo>('todos').updateOne(
       { _id: id, userId },
       { $set: updateOps }
     );
     
-    if (result.modifiedCount === 0) {
+    if (result.matchedCount === 0) {
       return null;
     }
     
@@ -175,18 +239,21 @@ export async function deleteTodo(id: number, userId: number): Promise<boolean> {
 export async function updateUser(id: number, updates: Partial<Omit<User, '_id' | 'createdAt'>>): Promise<User | null> {
   try {
     const db = await getDatabase();
-    const updateOps: { name?: string; email?: string; password?: string } = {};
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const updateOps: any = {};
     
     if (updates.name !== undefined) updateOps.name = updates.name;
     if (updates.email !== undefined) updateOps.email = updates.email;
     if (updates.password !== undefined) updateOps.password = updates.password;
+    if (updates.role !== undefined) updateOps.role = updates.role;
+    if (updates.isDeleted !== undefined) updateOps.isDeleted = updates.isDeleted;
     
     const result = await db.collection<User>('users').updateOne(
       { _id: id },
       { $set: updateOps }
     );
     
-    if (result.modifiedCount === 0) {
+    if (result.matchedCount === 0) {
       return null;
     }
     
@@ -208,9 +275,9 @@ export async function seedInitialTodos() {
     if (existingTodos === 0) {
       // Only seed if no todos exist
       const sampleTodos: Todo[] = [
-        { _id: 1, userId: 1, text: "Learn Next.js App Router", completed: false, priority: "high", createdAt: new Date().toISOString() },
-        { _id: 2, userId: 1, text: "Build CRUD with MongoDB", completed: false, priority: "medium", createdAt: new Date().toISOString() },
-        { _id: 3, userId: 1, text: "Style the UI beautifully", completed: true, priority: "low", createdAt: new Date().toISOString() },
+        { _id: 1, userId: 1, title: "Learn Next.js App Router", description: "Follow the official docs", completed: false, priority: "high", dueDate: "2026-12-31", assignedBy: 1, assignedByName: "Admin", message: "Kickoff task", createdAt: new Date().toISOString() },
+        { _id: 2, userId: 1, title: "Build CRUD with MongoDB", description: "Implement all endpoints", completed: false, priority: "medium", dueDate: "2026-12-31", assignedBy: 1, assignedByName: "Admin", message: "Core logic", createdAt: new Date().toISOString() },
+        { _id: 3, userId: 1, title: "Style the UI beautifully", description: "Use modern CSS", completed: true, priority: "low", dueDate: "2026-12-31", assignedBy: 1, assignedByName: "Admin", message: "Final polish", createdAt: new Date().toISOString() },
       ];
       
       await db.collection<Todo>('todos').insertMany(sampleTodos);

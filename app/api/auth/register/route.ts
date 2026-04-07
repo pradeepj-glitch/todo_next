@@ -39,13 +39,14 @@ export async function POST(req: NextRequest) {
     const token = generateToken({
       userId: user._id,
       email: user.email,
+      role: user.role,
     });
 
     // Set cookie
     const response = NextResponse.json(
       {
         message: "User registered successfully",
-        user: { id: user._id, email: user.email, name: user.name },
+        user: { id: user._id, email: user.email, name: user.name, role: user.role },
       },
       { status: 201 }
     );
