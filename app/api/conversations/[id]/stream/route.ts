@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-unused-vars */
 import { NextRequest } from "next/server";
 import { getTokenFromRequest, verifyToken } from "@/lib/auth";
 import { getDatabase, listMessages } from "@/lib/db";
