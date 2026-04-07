@@ -6,7 +6,7 @@ import { findTodoByIdAndUserId, updateTodo, deleteTodo, getDatabase } from "@/li
 // GET single todo (with ownership/admin verification)
 export async function GET(
   req: NextRequest,
-  context: { params: { id: string } }
+  context: { params: Promise<{ id: string }> }
 ) {
   try {
     const token = getTokenFromRequest(req);
@@ -38,7 +38,7 @@ export async function GET(
 // UPDATE todo (with ownership/admin verification)
 export async function PUT(
   req: NextRequest,
-  context: { params: { id: string } }
+  context: { params: Promise<{ id: string }> }
 ) {
   try {
     const token = getTokenFromRequest(req);
@@ -95,7 +95,7 @@ export async function PUT(
 // DELETE todo (with ownership/admin verification)
 export async function DELETE(
   req: NextRequest,
-  context: { params: { id: string } }
+  context: { params: Promise<{ id: string }> }
 ) {
   try {
     const token = getTokenFromRequest(req);

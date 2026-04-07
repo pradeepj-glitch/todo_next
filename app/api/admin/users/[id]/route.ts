@@ -2,11 +2,12 @@ import { NextRequest, NextResponse } from "next/server";
 import { isAdmin, adminOnlyResponse } from "@/lib/admin-check";
 import { softDeleteUser } from "@/lib/db";
 
-export async function DELETE(req: NextRequest, { params }: { params: { id: string } }) {
+export async function DELETE(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
+  const { id: idParam } = await params;
   if (!await isAdmin(req)) return adminOnlyResponse();
 
   try {
-    const id = parseInt(params.id);
+    const id = parseInt(idParam);
     if (isNaN(id)) return NextResponse.json({ error: "Invalid ID" }, { status: 400 });
 
     const success = await softDeleteUser(id);
